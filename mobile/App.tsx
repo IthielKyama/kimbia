@@ -56,25 +56,30 @@ export default function App() {
             initialRouteName="Login"
             screenOptions={{
               headerShown: false,
-              contentStyle: { backgroundColor: '#0B0F19' }
+              contentStyle: { backgroundColor: '#0B0F19' },
+              animation: 'slide_from_right' // Industry standard push animation
             }}
           >
-            <Stack.Screen name="Login" component={LoginScreen} />
-            <Stack.Screen name="SignUp" component={SignUpScreen} />
+            <Stack.Screen name="Login" component={LoginScreen} options={{ animation: 'fade' }} />
+            <Stack.Screen name="SignUp" component={SignUpScreen} options={{ animation: 'fade' }} />
             <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-            <Stack.Screen name="Explore" component={ExploreScreen} />
+            
+            {/* Fake Tab Screens (No animation for instant switching) */}
+            <Stack.Screen name="Explore" component={ExploreScreen} options={{ animation: 'none' }} />
+            <Stack.Screen name="Leaderboard" component={LeaderboardScreen} options={{ animation: 'none' }} />
+            <Stack.Screen name="PendingRaces" component={PendingRacesScreen} options={{ animation: 'none' }} />
+            <Stack.Screen name="Profile" component={ProfileScreen} options={{ animation: 'none' }} />
+            
+            {/* Standard Push Screens (Inherits slide_from_right) */}
             <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
             <Stack.Screen name="Registration" component={RegistrationScreen} />
-            <Stack.Screen name="Profile" component={ProfileScreen} />
-            <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
             <Stack.Screen name="SubmitTime" component={SubmitTimeScreen} />
             <Stack.Screen name="DigitalBib" component={DigitalBibScreen} />
             <Stack.Screen name="Checkout" component={CheckoutScreen} />
-            <Stack.Screen name="PaymentStatus" component={PaymentStatusScreen} />
-            <Stack.Screen name="SubmissionSuccess" component={SubmissionSuccessScreen} />
+            <Stack.Screen name="PaymentStatus" component={PaymentStatusScreen} options={{ animation: 'fade' }} />
+            <Stack.Screen name="SubmissionSuccess" component={SubmissionSuccessScreen} options={{ animation: 'fade' }} />
             <Stack.Screen name="Notifications" component={NotificationsScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
-            <Stack.Screen name="PendingRaces" component={PendingRacesScreen} />
           </Stack.Navigator>
         </NavigationContainer>
       </View>

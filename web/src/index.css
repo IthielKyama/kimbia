@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #FF4C29;
+  --color-background: #0B0F19;
+  --color-surface: #161F30;
+  --color-placeholder: #9CA3AF;
+  
+  --font-outfit: "Outfit", sans-serif;
+  --font-geist: "Geist", sans-serif;
+  --font-sans: "Outfit", sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-white font-sans antialiased;
+  }
+  
+  input, select, textarea {
+    @apply font-geist;
+  }
+}

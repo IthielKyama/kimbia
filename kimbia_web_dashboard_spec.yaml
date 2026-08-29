@@ -1,0 +1,83 @@
+name: Kimbia Web Dashboard AI Implementation Spec
+description: Detailed execution plan for building the React web dashboard for Kimbia covering Super Admin and Race Admin personas.
+context: Product Requirements Document (PRD)
+
+tech_stack:
+  build_tool: Vite
+  framework: React (18+)
+  language: TypeScript
+  styling: Tailwind CSS
+  ui_components: shadcn/ui (or MUI) for enterprise-grade tables, modals, and forms
+  routing: React Router DOM
+  state_management: React Context (for Auth/RBAC), React Query (for data fetching)
+  data_visualization: Recharts (for financial and registration metrics)
+
+architecture:
+  auth_strategy: "Mock Authentication Context with Dev Toggle to switch roles instantly without a backend"
+  roles:
+    - SUPER_ADMIN
+    - RACE_ADMIN_PENDING (Restricted access: can draft, cannot publish)
+    - RACE_ADMIN_APPROVED (Full access)
+
+phases:
+  - phase: 1
+    name: Scaffolding & Core Architecture
+    description: Initialize the project and set up the foundation.
+    tasks:
+      - Initialize Vite + React + TypeScript project in `/web` directory.
+      - Install and configure Tailwind CSS.
+      - Set up React Router and define the directory structure (`/pages`, `/components`, `/layouts`, `/context`).
+      - Create the core `DashboardLayout` containing a responsive Sidebar and Header.
+
+  - phase: 2
+    name: Mock RBAC Engine & Authentication UI
+    description: Build the login flows and the role-based access control system.
+    tasks:
+      - Implement `AuthContext` with a floating Dev UI toggle to switch between roles.
+      - Create `ProtectedRoute` wrappers to enforce role-based access to specific routes.
+      - Build the Public `/login` screen.
+      - Build the Public `/register` screen for Organizer self-serve sign-up.
+
+  - phase: 3
+    name: Super Admin - Vetting Portal
+    description: Tools for platform owners to vet organizers and link Tingg accounts.
+    tasks:
+      - Build the `/admin/organizers` view with a Data Table of registered organizers.
+      - Implement filtering by status (PENDING_VETTING, APPROVED).
+      - Build the "Review & Approve" Modal.
+      - CRITICAL: Add the required text input for "Tingg Sub-Merchant Account ID" inside the approval modal.
+      - Implement mock state update to approve the organizer.
+
+  - phase: 4
+    name: Race Admin - Dashboard & Analytics
+    description: The main landing page for event organizers.
+    tasks:
+      - Build the `/dashboard` route.
+      - Integrate `Recharts` to display financial data visualization (Payment Success Rates, Total Revenue, Registration volume).
+      - CRITICAL: Implement a persistent UI Banner for `RACE_ADMIN_PENDING` users explaining their restricted state.
+
+  - phase: 5
+    name: Race Admin - Event Drafting & Publishing
+    description: The core race creation flow.
+    tasks:
+      - Build the `/races` list view to show DRAFT, PUBLISHED, and CLOSED races.
+      - Build the `/races/new` form (Name, Distance, Date, Registration Fee).
+      - Implement Image Upload UI component for base Digital Bib Templates.
+      - CRITICAL: Implement the "Publish" button logic. It must be disabled/hidden if the user context is `RACE_ADMIN_PENDING`.
+
+  - phase: 6
+    name: Race Admin - Leaderboard & Award Payouts
+    description: Moderation of results and Tingg Postpayment integration UI.
+    tasks:
+      - Build the `/races/:id/leaderboard` view with a Data Table of submitted runner times.
+      - Implement sorting/filtering for the leaderboard (Age Group, Gender, Overall).
+      - Build the "Distribute Award" Modal flow.
+      - Include dropdowns to select Award Type: "Airtime" or "Mobile Money".
+      - Include inputs for Phone Number and Amount.
+      - Build the `/awards` tracking view to display payouts and their asynchronous states (PENDING, COMPLETED, FAILED) based on Tingg Webhooks.
+
+success_criteria:
+  - All roles can be tested via the Mock Auth toggle.
+  - The UI strictly prevents PENDING_VETTING admins from publishing races.
+  - The Super Admin flow explicitly captures the Tingg sub-merchant routing ID.
+  - The award payout UI clearly reflects the asynchronous nature of mobile money transfers.

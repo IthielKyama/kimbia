@@ -29,10 +29,10 @@ public class TinggService {
     private final RestTemplate restTemplate = new RestTemplate();
 
     public String getCheckoutUrl(TinggCheckoutPayload payload) {
-        // 1. Get Auth Token
+        // Get Auth Token
         String token = getAccessToken();
 
-        // 2. Generate Checkout URL
+        // Generate Checkout URL
         payload.setService_code(serviceCode);
 
         HttpHeaders headers = new HttpHeaders();

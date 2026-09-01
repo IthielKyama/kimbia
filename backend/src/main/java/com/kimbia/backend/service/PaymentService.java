@@ -64,14 +64,14 @@ public class PaymentService {
         // Tingg Checkout Payload
         TinggCheckoutPayload payload = new TinggCheckoutPayload();
         payload.setCustomer_first_name(user.getName() != null ? user.getName() : "Runner");
-        payload.setCustomer_last_name("Runner"); // Assuming only 'name' is in User entity for now
+        payload.setCustomer_last_name("Runner");
         payload.setMsisdn(user.getMobileNumber() != null ? user.getMobileNumber() : "254700000000");
         payload.setAccount_number(txRef);
         payload.setRequest_amount(race.getFee().toString());
         payload.setMerchant_transaction_id(txRef);
         payload.setCountry_code("KEN");
         payload.setCurrency_code("KES");
-        payload.setCallback_url("https://webhook.site/..."); // In prod, our actual webhook url
+        payload.setCallback_url("https://webhook.site/..."); // In prod actual webhook url
         payload.setFail_redirect_url("http://localhost:3000/races/" + race.getId() + "/checkout-failed");
         payload.setSuccess_redirect_url("http://localhost:3000/races/" + race.getId() + "/checkout-success");
 

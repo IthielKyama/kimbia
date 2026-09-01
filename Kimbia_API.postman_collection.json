@@ -1,96 +1,189 @@
 {
-	"info": {
-		"_postman_id": "060a8767-1fa8-4448-b4b3-d6cda322bc6d",
-		"name": "Kimbia API",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-	},
-	"item": [
-		{
-			"name": "Auth",
-			"item": [
-				{
-					"name": "Register User",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"Jane Doe\",\n  \"email\": \"jane.doe@example.com\",\n  \"password\": \"securepassword123\",\n  \"mobileNumber\": \"+254711223344\",\n  \"ageGroup\": \"25-29\",\n  \"gender\": \"F\"\n}"
-						},
-						"url": {
-							"raw": "http://localhost:8081/api/auth/register",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "8081",
-							"path": [
-								"api",
-								"auth",
-								"register"
-							]
-						}
-					}
-				},
-				{
-					"name": "Login",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"email\": \"jane.doe@example.com\",\n  \"password\": \"securepassword123\"\n}"
-						},
-						"url": {
-							"raw": "http://localhost:8081/api/auth/login",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "8081",
-							"path": [
-								"api",
-								"auth",
-								"login"
-							]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "Races",
-			"item": [
-				{
-					"name": "List Available Races",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "http://localhost:8081/api/races",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "8081",
-							"path": [
-								"api",
-								"races"
-							]
-						}
-					}
-				}
-			]
-		}
-	]
+    "info": {
+        "_postman_id": "060a8767-1fa8-4448-b4b3-d6cda322bc6d",
+        "name": "Kimbia API",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Auth",
+            "item": [
+                {
+                    "name": "Register User",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Jane Doe\",\n  \"email\": \"jane.doe@example.com\",\n  \"password\": \"securepassword123\",\n  \"mobileNumber\": \"+254711223344\",\n  \"ageGroup\": \"25-29\",\n  \"gender\": \"F\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:8081/api/auth/register",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8081",
+                            "path": [
+                                "api",
+                                "auth",
+                                "register"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Login",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"jane.doe@example.com\",\n  \"password\": \"securepassword123\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:8081/api/auth/login",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8081",
+                            "path": [
+                                "api",
+                                "auth",
+                                "login"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Races",
+            "item": [
+                {
+                    "name": "List Available Races",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8081/api/races",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8081",
+                            "path": [
+                                "api",
+                                "races"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Express Checkout",
+            "item": [
+                {
+                    "name": "Initiate Checkout",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{  \"raceId\": 1}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:8081/api/payments/checkout",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8081",
+                            "path": [
+                                "api",
+                                "payments",
+                                "checkout"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Tingg Webhook (Simulated)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{  \"merchant_transaction_id\": \"TX_REPLACE_ME\",  \"request_status_code\": 178,  \"request_status_description\": \"Success\",  \"checkout_request_id\": \"REQ123\"}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:8081/api/webhooks/tingg",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8081",
+                            "path": [
+                                "api",
+                                "webhooks",
+                                "tingg"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Poll Registration Status",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:8081/api/registrations/1/status",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8081",
+                            "path": [
+                                "api",
+                                "registrations",
+                                "1",
+                                "status"
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    ]
 }

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Image as ImageIcon } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { NumberInput } from '../../components/NumberInput';
+import { DatePicker } from '../../components/DatePicker';
 
 export function NewRace() {
   const navigate = useNavigate();
@@ -16,11 +18,22 @@ export function NewRace() {
     description: ''
   });
 
+  const [error, setError] = useState('');
+
   const handleSubmit = (e: React.FormEvent, action: 'DRAFT' | 'PUBLISH') => {
     e.preventDefault();
-    if (action === 'PUBLISH' && isPending) {
-      alert("You cannot publish races until your account is approved.");
-      return;
+    setError('');
+
+    if (action === 'PUBLISH') {
+      if (!formData.name) return setError('Race name is required.');
+      if (!formData.date) return setError('Race date is required.');
+      if (!formData.fee) return setError('Registration fee is required.');
+      if (!formData.distance) return setError('Distance is required.');
+      
+      if (isPending) {
+        alert("You cannot publish races until your account is approved.");
+        return;
+      }
     }
     
     console.log("Saving race:", formData, action);
@@ -35,8 +48,12 @@ export function NewRace() {
     <div className="max-w-3xl mx-auto space-y-6 font-geist">
       <h1 className="text-2xl font-bold text-white font-outfit">Create New Race</h1>
 
-      <form className="space-y-8 bg-surface p-6 sm:p-8 rounded-2xl shadow-lg border border-gray-800">
-        
+      <form className="space-y-8 bg-surface p-6 sm:p-8 rounded-2xl shadow-lg border border-gray-800" noValidate>
+        {error && (
+          <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm font-medium">
+            {error}
+          </div>
+        )}
         {/* Basic Info */}
         <div className="space-y-6 border-b border-gray-800 pb-8">
           <h2 className="text-lg font-bold text-white font-outfit">Race Details</h2>
@@ -60,31 +77,26 @@ export function NewRace() {
             <div className="sm:col-span-3">
               <label htmlFor="date" className="block text-sm font-medium text-gray-300">Race Date</label>
               <div className="mt-2">
-                <input
-                  type="date"
+                <DatePicker
                   name="date"
                   id="date"
                   value={formData.date}
                   onChange={handleChange}
-                  className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-700 rounded-xl border p-3 bg-background text-white placeholder-gray-600"
                 />
               </div>
             </div>
 
             <div className="sm:col-span-3">
               <label htmlFor="fee" className="block text-sm font-medium text-gray-300">Registration Fee (KES)</label>
-              <div className="mt-2 flex rounded-xl shadow-sm">
-                <span className="inline-flex items-center px-4 rounded-l-xl border border-r-0 border-gray-700 bg-gray-800 text-gray-400 sm:text-sm font-bold">
-                  KES
-                </span>
-                <input
-                  type="number"
+              <div className="mt-2">
+                <NumberInput
                   name="fee"
                   id="fee"
                   value={formData.fee}
                   onChange={handleChange}
-                  className="flex-1 min-w-0 block w-full px-3 py-3 rounded-none rounded-r-xl focus:ring-primary focus:border-primary sm:text-sm border-gray-700 border bg-background text-white placeholder-gray-600"
                   placeholder="0.00"
+                  step={100}
+                  prefixNode="KES"
                 />
               </div>
             </div>

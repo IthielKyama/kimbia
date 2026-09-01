@@ -54,69 +54,99 @@ export function Races() {
       </div>
 
       <div className="bg-surface shadow-lg overflow-hidden sm:rounded-xl border border-gray-800">
-        <ul className="divide-y divide-gray-800">
-          {races.map((race) => (
-            <li key={race.id}>
-              <div className="px-4 py-5 sm:px-6 hover:bg-gray-800/50 transition-colors flex items-center justify-between flex-col sm:flex-row gap-4">
-                <div className="flex-1 min-w-0 w-full">
-                  <div className="flex items-center justify-between">
-                    <Link to={`/races/${race.id}`} className="text-lg font-bold text-white hover:text-primary transition-colors truncate font-outfit">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-800">
+            <thead className="bg-background/50">
+              <tr>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider font-outfit">
+                  Race Name
+                </th>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider font-outfit">
+                  Date
+                </th>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider font-outfit">
+                  Distance
+                </th>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider font-outfit">
+                  Fee
+                </th>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider font-outfit">
+                  Status
+                </th>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider font-outfit">
+                  Publish
+                </th>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider font-outfit">
+                  Leaderboard
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-800">
+              {races.map((race) => (
+                <tr key={race.id} className="hover:bg-gray-800/50 transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <Link to={`/races/${race.id}`} className="text-sm font-bold text-white hover:text-primary transition-colors font-outfit">
                       {race.name}
                     </Link>
-                    <div className="ml-2 flex-shrink-0 flex">
-                      <p className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full border ${getStatusColor(race.status)}`}>
-                        {race.status}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex flex-col sm:flex-row sm:space-x-6 text-sm text-placeholder gap-2">
-                    <p className="flex items-center bg-background px-3 py-1 rounded-lg">
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center text-sm text-placeholder bg-background px-3 py-1.5 rounded-lg w-fit border border-gray-800">
                       <Calendar className="flex-shrink-0 mr-2 h-4 w-4 text-primary" />
                       {race.date}
-                    </p>
-                    <p className="flex items-center bg-background px-3 py-1 rounded-lg">
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center text-sm text-placeholder bg-background px-3 py-1.5 rounded-lg w-fit border border-gray-800">
                       <MapPin className="flex-shrink-0 mr-2 h-4 w-4 text-primary" />
                       {race.distance}
-                    </p>
-                    <p className="flex items-center bg-background px-3 py-1 rounded-lg">
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center text-sm text-placeholder bg-background px-3 py-1.5 rounded-lg w-fit border border-gray-800">
                       <Tag className="flex-shrink-0 mr-2 h-4 w-4 text-primary" />
                       KES {race.fee}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex gap-2 w-full sm:w-auto sm:ml-4">
-                  <Link
-                    to={`/races/${race.id}/leaderboard`}
-                    className="inline-flex items-center px-4 py-2 border border-gray-700 shadow-sm text-sm font-bold rounded-xl text-gray-300 bg-background hover:bg-gray-800 hover:text-white flex-1 justify-center transition-colors"
-                  >
-                    Leaderboard
-                  </Link>
-                  {race.status === 'DRAFT' && (
-                    <button
-                      onClick={() => togglePublish(race.id)}
-                      disabled={isPending}
-                      className={`inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-bold rounded-xl text-white flex-1 justify-center transition-all
-                        ${isPending ? 'bg-gray-700 cursor-not-allowed opacity-50' : 'bg-green-600 hover:bg-green-500'}
-                      `}
-                      title={isPending ? "You must be approved to publish races" : "Publish this race"}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full border ${getStatusColor(race.status)}`}>
+                      {race.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {race.status === 'DRAFT' && (
+                      <button
+                        onClick={() => togglePublish(race.id)}
+                        disabled={isPending}
+                        className={`inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-bold rounded-xl text-white transition-all
+                          ${isPending ? 'bg-gray-700 cursor-not-allowed opacity-50' : 'bg-green-600 hover:bg-green-500'}
+                        `}
+                        title={isPending ? "You must be approved to publish races" : "Publish this race"}
+                      >
+                        Publish
+                      </button>
+                    )}
+                    {race.status === 'PUBLISHED' && (
+                      <button
+                        onClick={() => togglePublish(race.id)}
+                        className="inline-flex items-center px-4 py-2 border border-gray-700 shadow-sm text-sm font-bold rounded-xl text-gray-300 bg-background hover:bg-gray-800 hover:text-white transition-colors"
+                      >
+                        Unpublish
+                      </button>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <Link
+                      to={`/races/${race.id}/leaderboard`}
+                      className="inline-flex items-center px-4 py-2 border border-gray-700 shadow-sm text-sm font-bold rounded-xl text-gray-300 bg-background hover:bg-gray-800 hover:text-white transition-colors"
                     >
-                      Publish
-                    </button>
-                  )}
-                  {race.status === 'PUBLISHED' && (
-                    <button
-                      onClick={() => togglePublish(race.id)}
-                      className="inline-flex items-center px-4 py-2 border border-gray-700 shadow-sm text-sm font-bold rounded-xl text-gray-300 bg-background hover:bg-gray-800 hover:text-white flex-1 justify-center transition-colors"
-                    >
-                      Unpublish
-                    </button>
-                  )}
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
+                      Leaderboard
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

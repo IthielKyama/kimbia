@@ -7,7 +7,9 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -45,6 +47,7 @@ public class Payment {
 
     private String idempotencyKey;
     
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "json")
     private String rawWebhookPayload;
 
@@ -54,3 +57,4 @@ public class Payment {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 }
+

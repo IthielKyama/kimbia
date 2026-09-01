@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams } from 'react-router-dom';
 import { Trophy, Gift, ArrowUpDown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { Select } from '../../components/Select';
+import { NumberInput } from '../../components/NumberInput';
 
 interface Runner {
   id: string;
@@ -28,9 +31,15 @@ export function Leaderboard() {
   const [awardType, setAwardType] = useState<'AIRTIME' | 'MOBILE_MONEY'>('MOBILE_MONEY');
   const [phone, setPhone] = useState('');
   const [amount, setAmount] = useState('');
+  const [error, setError] = useState('');
   
   const handleAward = (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+
+    if (!phone) return setError('Please enter a phone number.');
+    if (!amount) return setError('Please enter an amount.');
+
     if (isPending) {
       alert("You cannot distribute awards until your account is approved.");
       return;
@@ -96,6 +105,7 @@ export function Leaderboard() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button 
+                      type="button"
                       onClick={() => setSelectedRunner(runner)}
                       className="text-primary hover:text-primary/80 flex items-center font-bold bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20 hover:bg-primary/20 transition-colors"
                     >
@@ -110,12 +120,12 @@ export function Leaderboard() {
       </div>
 
       {/* Award Modal */}
-      {selectedRunner && (
+      {selectedRunner && createPortal(
         <div className="fixed inset-0 z-50 overflow-y-auto font-geist" aria-labelledby="modal-title" role="dialog" aria-modal="true">
           <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity" onClick={() => setSelectedRunner(null)}></div>
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div className="inline-block align-bottom bg-surface rounded-2xl px-4 pt-5 pb-4 text-left overflow-hidden shadow-2xl border border-gray-800 transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+            <div className="relative z-10 inline-block align-bottom bg-surface rounded-2xl px-4 pt-5 pb-4 text-left overflow-hidden shadow-2xl border border-gray-800 transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
               <div>
                 <div className="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-primary/10 border border-primary/20">
                   <Gift className="h-7 w-7 text-primary" aria-hidden="true" />
@@ -129,17 +139,23 @@ export function Leaderboard() {
                   </div>
                 </div>
               </div>
-              <form onSubmit={handleAward} className="mt-6 space-y-5 border-t border-gray-800 pt-5">
-                <div>
+              <form onSubmit={handleAward} className="mt-6 space-y-5 border-t border-gray-800 pt-5" noValidate>
+                {error && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm font-medium">
+                    {error}
+                  </div>
+                )}
+                <div className="relative z-20">
                   <label className="block text-sm font-medium text-gray-300 mb-2">Award Type</label>
-                  <select
+                  <Select
                     value={awardType}
-                    onChange={(e) => setAwardType(e.target.value as any)}
-                    className="mt-1 block w-full px-4 py-3 text-base border-gray-700 bg-background text-white focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-xl border"
-                  >
-                    <option value="MOBILE_MONEY">Mobile Money Transfer</option>
-                    <option value="AIRTIME">Airtime Top-up</option>
-                  </select>
+                    onChange={(val) => setAwardType(val as any)}
+                    options={[
+                      { value: 'MOBILE_MONEY', label: 'Mobile Money Transfer' },
+                      { value: 'AIRTIME', label: 'Airtime Top-up' }
+                    ]}
+                    className="mt-1"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Phone Number</label>
@@ -154,13 +170,12 @@ export function Leaderboard() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Amount (KES)</label>
-                  <input
-                    type="number"
+                  <NumberInput
                     required
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="0"
-                    className="appearance-none block w-full px-4 py-3 border border-gray-700 rounded-xl shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm bg-background text-white placeholder-gray-600"
+                    step={100}
                   />
                 </div>
                 
@@ -179,7 +194,10 @@ export function Leaderboard() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setSelectedRunner(null)}
+                    onClick={() => {
+                      setSelectedRunner(null);
+                      setError('');
+                    }}
                     className="mt-3 w-full inline-flex justify-center rounded-xl border border-gray-700 shadow-sm px-4 py-3 bg-background text-base font-bold text-gray-300 hover:bg-gray-800 focus:outline-none sm:mt-0 sm:w-auto sm:text-sm transition-colors"
                   >
                     Cancel
@@ -189,7 +207,7 @@ export function Leaderboard() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </div>
   );
 }

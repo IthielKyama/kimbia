@@ -133,9 +133,9 @@ export default function LeaderboardScreen({ navigation }: any) {
             <Feather name="award" size={22} color="#FF4C29" />
             <Text className="text-primary font-semibold text-[11px]">Leaderboard</Text>
           </TouchableOpacity>
-          <TouchableOpacity className="items-center gap-1 w-[72px]" onPress={() => navigation.navigate('PendingRaces')}>
-            <Feather name="plus-circle" size={22} color="#9CA3AF" />
-            <Text className="text-[#9CA3AF] font-semibold text-[11px]">Submit</Text>
+          <TouchableOpacity className="items-center gap-1 w-[72px]" onPress={() => navigation.navigate('MyEvents')}>
+            <Feather name="calendar" size={22} color="#9CA3AF" />
+            <Text className="text-[#9CA3AF] font-semibold text-[11px]">My Events</Text>
           </TouchableOpacity>
           <TouchableOpacity className="items-center gap-1 w-[72px]" onPress={() => navigation.navigate('Profile')}>
             <Feather name="user" size={22} color="#9CA3AF" />

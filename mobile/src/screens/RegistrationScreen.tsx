@@ -15,7 +15,9 @@ export default function RegistrationScreen({ navigation }: { navigation: Registr
       
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 py-3">
-        <View className="w-10 h-10" />
+        <TouchableOpacity onPress={() => navigation.goBack()} className="w-10 h-10 bg-surface rounded-full items-center justify-center">
+           <Feather name="chevron-left" size={24} color="#fff" />
+        </TouchableOpacity>
       </View>
 
       <KeyboardAvoidingView 
@@ -142,9 +144,9 @@ export default function RegistrationScreen({ navigation }: { navigation: Registr
             <Feather name="award" size={22} color="#9CA3AF" />
             <Text className="text-[#9CA3AF] font-semibold text-[11px]">Leaderboard</Text>
           </TouchableOpacity>
-          <TouchableOpacity className="items-center gap-1 w-[72px]" onPress={() => navigation.navigate('PendingRaces')}>
-            <Feather name="plus-circle" size={22} color="#9CA3AF" />
-            <Text className="text-[#9CA3AF] font-semibold text-[11px]">Submit</Text>
+          <TouchableOpacity className="items-center gap-1 w-[72px]" onPress={() => navigation.navigate('MyEvents')}>
+            <Feather name="calendar" size={22} color="#9CA3AF" />
+            <Text className="text-[#9CA3AF] font-semibold text-[11px]">My Events</Text>
           </TouchableOpacity>
           <TouchableOpacity className="items-center gap-1 w-[72px]" onPress={() => navigation.navigate('Profile')}>
             <Feather name="user" size={22} color="#9CA3AF" />

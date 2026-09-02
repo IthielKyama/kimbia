@@ -1,10 +1,20 @@
-import { View, Text, ScrollView, TouchableOpacity , Image} from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity , Image, ActivityIndicator } from 'react-native';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
+import { useQuery } from '@tanstack/react-query';
+import apiClient from '../services/apiClient';
 
 export default function ProfileScreen({ navigation }: any) {
+  const { data: user, isLoading } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: async () => {
+      const response = await apiClient.get('/api/users/me');
+      return response.data;
+    },
+  });
+
   return (
     <SafeAreaView className="flex-1 bg-background">
       <StatusBar style="light" />
@@ -26,7 +36,11 @@ export default function ProfileScreen({ navigation }: any) {
         <View className="flex-row items-center gap-4 mb-5">
           <Image source={{ uri: 'https://images.unsplash.com/photo-1530549387789-4c1017266635?auto=format&fit=crop&w=400&q=80' }} className="w-20 h-20 rounded-full border-2 border-primary" />
           <View className="flex-col gap-1">
-            <Text className="text-white font-extrabold text-[22px]">Eliud Kipchoge</Text>
+            {isLoading ? (
+              <ActivityIndicator color="#FF4C29" />
+            ) : (
+              <Text className="text-white font-extrabold text-[22px]">{user?.name || 'Kimbia Runner'}</Text>
+            )}
             <Text className="text-placeholder text-[13px]">Kimbia Runner since Jan 2026</Text>
           </View>
         </View>
@@ -127,9 +141,9 @@ export default function ProfileScreen({ navigation }: any) {
             <Feather name="award" size={22} color="#9CA3AF" />
             <Text className="text-[#9CA3AF] font-semibold text-[11px]">Leaderboard</Text>
           </TouchableOpacity>
-          <TouchableOpacity className="items-center gap-1 w-[72px]" onPress={() => navigation.navigate('PendingRaces')}>
-            <Feather name="plus-circle" size={22} color="#9CA3AF" />
-            <Text className="text-[#9CA3AF] font-semibold text-[11px]">Submit</Text>
+          <TouchableOpacity className="items-center gap-1 w-[72px]" onPress={() => navigation.navigate('MyEvents')}>
+            <Feather name="calendar" size={22} color="#9CA3AF" />
+            <Text className="text-[#9CA3AF] font-semibold text-[11px]">My Events</Text>
           </TouchableOpacity>
           <TouchableOpacity className="items-center gap-1 w-[72px]" onPress={() => navigation.navigate('Profile')}>
             <Feather name="user" size={22} color="#FF4C29" />

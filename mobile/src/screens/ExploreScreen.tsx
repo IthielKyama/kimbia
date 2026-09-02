@@ -1,14 +1,24 @@
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Image, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../App';
+import { useQuery } from '@tanstack/react-query';
+import apiClient from '../services/apiClient';
 
 type ExploreScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Explore'>;
 
 export default function ExploreScreen({ navigation }: { navigation: ExploreScreenNavigationProp }) {
+  const { data: races, isLoading, error, refetch, isRefetching } = useQuery({
+    queryKey: ['races'],
+    queryFn: async () => {
+      const response = await apiClient.get('/api/races');
+      return response.data;
+    },
+  });
+
   return (
     <SafeAreaView className="flex-1 bg-background">
       <StatusBar style="light" />
@@ -24,7 +34,18 @@ export default function ExploreScreen({ navigation }: { navigation: ExploreScree
         </TouchableOpacity>
       </View>
 
-      <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView 
+        className="flex-1 px-5" 
+        contentContainerStyle={{ paddingBottom: 100 }}
+        refreshControl={
+          <RefreshControl 
+            refreshing={isRefetching} 
+            onRefresh={refetch}
+            tintColor="#FF4C29" 
+            colors={['#FF4C29']}
+          />
+        }
+      >
         {/* Search Bar */}
         <View className="flex-row items-center gap-3 mb-5 mt-2">
           <View className="flex-1 bg-surface border border-[#243249] rounded-xl flex-row items-center px-4 h-12">
@@ -76,65 +97,54 @@ export default function ExploreScreen({ navigation }: { navigation: ExploreScree
           <Text className="text-white text-lg font-bold uppercase">UPCOMING EVENTS</Text>
         </View>
 
-        {/* Event Card 1 */}
-        <TouchableOpacity 
-          className="bg-surface rounded-2xl overflow-hidden mb-5 border border-[#243249]"
-          onPress={() => navigation.navigate('EventDetails')}
-        >
-          <Image source={{ uri: 'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?auto=format&fit=crop&w=800&q=80' }} className="h-[130px] w-full" />
-          <View className="p-4 flex-col gap-3">
-            <View className="flex-row items-center justify-between">
-              <View className="bg-[#1E2A3E] px-2 py-1 rounded-md flex-row items-center gap-1">
-                <Feather name="x-circle" size={12} color="#CCFF00" />
-                <Text className="text-[#CCFF00] font-bold text-xs">10 KM</Text>
-              </View>
-              <Text className="text-primary font-bold text-sm">KES 1,500</Text>
-            </View>
-            <View>
-              <Text className="text-white font-bold text-lg mb-2">Rift Valley 10K Challenge</Text>
-              <View className="flex-row items-center gap-3">
-                <View className="flex-row items-center gap-1">
-                  <Feather name="calendar" size={12} color="#9CA3AF" />
-                  <Text className="text-[#9CA3AF] text-xs">Oct 12 - Oct 14</Text>
-                </View>
-                <View className="flex-row items-center gap-1">
-                  <Feather name="users" size={12} color="#9CA3AF" />
-                  <Text className="text-[#9CA3AF] text-xs">1,240 runners</Text>
-                </View>
-              </View>
-            </View>
+        {isLoading ? (
+          <ActivityIndicator color="#FF4C29" className="mt-10" />
+        ) : error ? (
+          <View className="mt-10 items-center">
+            <Feather name="alert-circle" size={32} color="#FF4C29" />
+            <Text className="text-[#FF4C29] mt-3 font-bold text-center px-4">
+              Error fetching races: {(error as any).response?.data?.message || error.message}
+            </Text>
           </View>
-        </TouchableOpacity>
-
-        {/* Event Card 2 */}
-        <TouchableOpacity 
-          className="bg-surface rounded-2xl overflow-hidden mb-5 border border-[#243249]"
-          onPress={() => navigation.navigate('EventDetails')}
-        >
-          <Image source={{ uri: 'https://images.unsplash.com/photo-1505051508008-923feaf90180?auto=format&fit=crop&w=800&q=80' }} className="h-[130px] w-full" />
-          <View className="p-4 flex-col gap-3">
-            <View className="flex-row items-center justify-between">
-              <View className="bg-[#1E2A3E] px-2 py-1 rounded-md flex-row items-center gap-1">
-                <Feather name="x-circle" size={12} color="#CCFF00" />
-                <Text className="text-[#CCFF00] font-bold text-xs">21.1 KM</Text>
-              </View>
-              <Text className="text-primary font-bold text-sm">KES 2,500</Text>
-            </View>
-            <View>
-              <Text className="text-white font-bold text-lg mb-2">Nairobi Midnight Half</Text>
-              <View className="flex-row items-center gap-3">
-                <View className="flex-row items-center gap-1">
-                  <Feather name="calendar" size={12} color="#9CA3AF" />
-                  <Text className="text-[#9CA3AF] text-xs">Nov 02</Text>
-                </View>
-                <View className="flex-row items-center gap-1">
-                  <Feather name="users" size={12} color="#9CA3AF" />
-                  <Text className="text-[#9CA3AF] text-xs">840 runners</Text>
-                </View>
-              </View>
-            </View>
+        ) : races?.length === 0 ? (
+          <View className="mt-10 items-center">
+            <Text className="text-placeholder mt-3 text-center">No upcoming races found.</Text>
           </View>
-        </TouchableOpacity>
+        ) : (
+          races?.map((race: any) => (
+            <TouchableOpacity 
+              key={race.id}
+              className="bg-surface rounded-2xl overflow-hidden mb-5 border border-[#243249]"
+              onPress={() => navigation.navigate('EventDetails', { raceId: race.id, race })}
+            >
+              <Image source={{ uri: race.bibTemplateUrl || 'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?auto=format&fit=crop&w=800&q=80' }} className="h-[130px] w-full" />
+              <View className="p-4 flex-col gap-3">
+                <View className="flex-row items-center justify-between">
+                  <View className="bg-[#1E2A3E] px-2 py-1 rounded-md flex-row items-center gap-1">
+                    <Feather name="x-circle" size={12} color="#CCFF00" />
+                    <Text className="text-[#CCFF00] font-bold text-xs">{race.distance}</Text>
+                  </View>
+                  <Text className="text-primary font-bold text-sm">KES {race.fee}</Text>
+                </View>
+                <View>
+                  <Text className="text-white font-bold text-lg mb-2">{race.name}</Text>
+                  <View className="flex-row items-center gap-3">
+                    <View className="flex-row items-center gap-1">
+                      <Feather name="calendar" size={12} color="#9CA3AF" />
+                      <Text className="text-[#9CA3AF] text-xs">
+                        {new Date(race.raceDate).toLocaleDateString()}
+                      </Text>
+                    </View>
+                    <View className="flex-row items-center gap-1">
+                      <Feather name="users" size={12} color="#9CA3AF" />
+                      <Text className="text-[#9CA3AF] text-xs">open</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
       </ScrollView>
 
                               {/* Bottom Nav Placeholder */}
@@ -148,9 +158,9 @@ export default function ExploreScreen({ navigation }: { navigation: ExploreScree
             <Feather name="award" size={22} color="#9CA3AF" />
             <Text className="text-[#9CA3AF] font-semibold text-[11px]">Leaderboard</Text>
           </TouchableOpacity>
-          <TouchableOpacity className="items-center gap-1 w-[72px]" onPress={() => navigation.navigate('PendingRaces')}>
-            <Feather name="plus-circle" size={22} color="#9CA3AF" />
-            <Text className="text-[#9CA3AF] font-semibold text-[11px]">Submit</Text>
+          <TouchableOpacity className="items-center gap-1 w-[72px]" onPress={() => navigation.navigate('MyEvents')}>
+            <Feather name="calendar" size={22} color="#9CA3AF" />
+            <Text className="text-[#9CA3AF] font-semibold text-[11px]">My Events</Text>
           </TouchableOpacity>
           <TouchableOpacity className="items-center gap-1 w-[72px]" onPress={() => navigation.navigate('Profile')}>
             <Feather name="user" size={22} color="#9CA3AF" />

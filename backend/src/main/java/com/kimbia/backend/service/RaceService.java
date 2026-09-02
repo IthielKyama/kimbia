@@ -17,4 +17,8 @@ public class RaceService {
     public List<Race> getPublishedRaces() {
         return raceRepository.findByStatus(RaceStatus.PUBLISHED);
     }
+
+    public Race getRaceById(Integer id) {
+        return raceRepository.findById(id).orElseThrow(() -> new RuntimeException("Race not found"));
+    }
 }

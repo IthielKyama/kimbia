@@ -26,5 +26,10 @@ public class RegistrationController {
         response.setBibImgUrl(reg.getBibImgUrl());
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/my-events")
+    public ResponseEntity<java.util.List<Registration>> getMyRegistrations(@org.springframework.security.core.annotation.AuthenticationPrincipal com.kimbia.backend.entity.User user) {
+        return ResponseEntity.ok(registrationService.getRegistrationsByUserId(user.getId()));
+    }
 }
 

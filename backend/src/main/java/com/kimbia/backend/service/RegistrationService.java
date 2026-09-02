@@ -23,5 +23,9 @@ public class RegistrationService {
     public List<Registration> getRegistrationsByRaceId(Integer raceId) {
         return registrationRepository.findByRaceId(raceId);
     }
+
+    public List<Registration> getRegistrationsByUserId(Integer userId) {
+        return registrationRepository.findByUserId(userId);
+    }
 }
 

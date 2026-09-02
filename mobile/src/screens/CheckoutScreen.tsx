@@ -1,4 +1,5 @@
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Linking, Platform } from 'react-native';
+import * as ExpoLinking from 'expo-linking';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -31,10 +32,10 @@ export default function CheckoutScreen({ navigation, route }: { navigation: Chec
     mutationFn: async () => {
       let returnUrl = '';
       if (Platform.OS === 'web') {
-        returnUrl = window.location.origin + '/payment-status/{id}'; // Drops them back into the Expo Web root tab
+        returnUrl = window.location.origin + '/payment-status/__id__'; // Drops them back into the Expo Web root tab
       } else {
         // Fallback for native devices
-        returnUrl = 'exp://192.168.137.1:8081/--/payment-status/{id}';
+        returnUrl = ExpoLinking.createURL('payment-status/__id__');
       }
 
       const response = await apiClient.post('/api/payments/checkout', { raceId, returnUrl });

@@ -84,8 +84,12 @@ public class PaymentService {
         
         String redirectTarget = (returnUrl != null && !returnUrl.isEmpty()) ? returnUrl : "http://localhost:3000/races/" + race.getId() + "/checkout-success";
         
-        if (redirectTarget.contains("{id}")) {
+        if (redirectTarget.contains("__id__")) {
+            redirectTarget = redirectTarget.replace("__id__", registration.getId().toString());
+        } else if (redirectTarget.contains("{id}")) {
             redirectTarget = redirectTarget.replace("{id}", registration.getId().toString());
+        } else if (redirectTarget.contains("%7Bid%7D")) {
+            redirectTarget = redirectTarget.replace("%7Bid%7D", registration.getId().toString());
         }
 
         payload.setFail_redirect_url(redirectTarget);

@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import Input from '../components/Input';
+import CustomAlert from '../components/CustomAlert';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useMutation } from '@tanstack/react-query';
+import apiClient from '../services/apiClient';
 
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../App';
@@ -12,6 +16,52 @@ type LoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, '
 
 export default function LoginScreen({ navigation }: { navigation: LoginScreenNavigationProp }) {
   const [rememberMe, setRememberMe] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [alertConfig, setAlertConfig] = useState({ visible: false, title: '', message: '' });
+
+  const loginMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiClient.post('/api/auth/login', { email, password });
+      return response.data;
+    },
+    onSuccess: async (data) => {
+      await AsyncStorage.setItem('token', data.token);
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Explore' }],
+      });
+    },
+    onError: (error: any) => {
+      console.log('Login Error:', error.response?.data || error.message);
+      const debugMessage = error.response?.data 
+        ? JSON.stringify(error.response.data) 
+        : error.message;
+
+      setAlertConfig({ 
+        visible: true, 
+        title: 'Login Failed (Debug)', 
+        message: debugMessage || 'Invalid email or password.' 
+      });
+    },
+  });
+
+  const validateForm = () => {
+    let newErrors: Record<string, string> = {};
+    if (!email.trim()) newErrors.email = 'Email address is required';
+    if (!password) newErrors.password = 'Password is required';
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleLogin = () => {
+    if (validateForm()) {
+      loginMutation.mutate();
+    }
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -45,12 +95,18 @@ export default function LoginScreen({ navigation }: { navigation: LoginScreenNav
               placeholder="you@example.com" 
               keyboardType="email-address"
               autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+              error={errors.email}
             />
             <Input 
               label="Password" 
               iconName="lock" 
               placeholder="••••••••" 
               isPassword 
+              value={password}
+              onChangeText={setPassword}
+              error={errors.password}
             />
           </View>
 
@@ -75,9 +131,14 @@ export default function LoginScreen({ navigation }: { navigation: LoginScreenNav
           <View className="flex-col gap-6 mb-8">
             <TouchableOpacity 
               className="w-full h-12 bg-primary rounded-xl items-center justify-center shadow-lg shadow-primary/25"
-              onPress={() => navigation.navigate('Explore')}
+              onPress={handleLogin}
+              disabled={loginMutation.isPending}
             >
-              <Text className="text-white font-semibold text-base">Sign in</Text>
+              {loginMutation.isPending ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text className="text-white font-semibold text-base">Sign in</Text>
+              )}
             </TouchableOpacity>
 
             <View className="flex-row items-center w-full my-2">
@@ -102,6 +163,13 @@ export default function LoginScreen({ navigation }: { navigation: LoginScreenNav
 
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <CustomAlert 
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        onClose={() => setAlertConfig({ ...alertConfig, visible: false })}
+      />
     </SafeAreaView>
   );
 }

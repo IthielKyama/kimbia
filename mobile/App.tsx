@@ -51,6 +51,9 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+import { createNavigationContainerRef } from '@react-navigation/native';
+export const navigationRef = createNavigationContainerRef<RootStackParamList>();
+
 const queryClient = new QueryClient();
 
 export default function App() {
@@ -95,7 +98,7 @@ export default function App() {
       <SafeAreaProvider>
         <View style={{ flex: 1, backgroundColor: '#0B0F19' }}>
           <StatusBar style="light" />
-          <NavigationContainer linking={linking}>
+          <NavigationContainer linking={linking} ref={navigationRef}>
             <Stack.Navigator 
               id="RootStack"
               initialRouteName={initialRoute}

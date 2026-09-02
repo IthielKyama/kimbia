@@ -28,4 +28,21 @@ apiClient.interceptors.request.use(
     }
 );
 
+apiClient.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        if (error.response && error.response.status === 401) {
+            await AsyncStorage.removeItem('token');
+            const { navigationRef } = require('../../App');
+            if (navigationRef.isReady()) {
+                navigationRef.reset({
+                    index: 0,
+                    routes: [{ name: 'Login' }],
+                });
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
 export default apiClient;

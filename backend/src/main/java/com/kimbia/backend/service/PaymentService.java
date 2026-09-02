@@ -37,17 +37,26 @@ public class PaymentService {
     }
 
     @Transactional
-    public CheckoutResponse initiateCheckout(String userEmail, Integer raceId) {
+    public CheckoutResponse initiateCheckout(String userEmail, Integer raceId, String returnUrl) {
         User user = userRepository.findByEmail(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
         Race race = raceRepository.findById(raceId).orElseThrow(() -> new RuntimeException("Race not found"));
 
-        // Create Registration
-        Registration registration = new Registration();
-        registration.setUser(user);
-        registration.setRace(race);
-        registration.setPaymentStatus(PaymentStatus.PENDING);
-        registration.setStatus("ACTIVE");
-        registration = registrationRepository.save(registration);
+        Registration registration = registrationRepository.findByUserAndRace(user, race).orElse(null);
+
+        if (registration != null) {
+            if (registration.getPaymentStatus() == PaymentStatus.COMPLETED) {
+                throw new RuntimeException("You are already registered for this race.");
+            }
+            // If PENDING, reuse the existing registration.
+        } else {
+            // Create new Registration
+            registration = new Registration();
+            registration.setUser(user);
+            registration.setRace(race);
+            registration.setPaymentStatus(PaymentStatus.PENDING);
+            registration.setStatus("ACTIVE");
+            registration = registrationRepository.save(registration);
+        }
 
         // Create Payment
         Payment payment = new Payment();
@@ -72,8 +81,15 @@ public class PaymentService {
         payload.setCountry_code("KEN");
         payload.setCurrency_code("KES");
         payload.setCallback_url("https://webhook.site/..."); // In prod actual webhook url
-        payload.setFail_redirect_url("http://localhost:3000/races/" + race.getId() + "/checkout-failed");
-        payload.setSuccess_redirect_url("http://localhost:3000/races/" + race.getId() + "/checkout-success");
+        
+        String redirectTarget = (returnUrl != null && !returnUrl.isEmpty()) ? returnUrl : "http://localhost:3000/races/" + race.getId() + "/checkout-success";
+        
+        if (redirectTarget.contains("{id}")) {
+            redirectTarget = redirectTarget.replace("{id}", registration.getId().toString());
+        }
+
+        payload.setFail_redirect_url(redirectTarget);
+        payload.setSuccess_redirect_url(redirectTarget);
 
         String redirectUrl = tinggService.getCheckoutUrl(payload);
 
@@ -130,6 +146,22 @@ public class PaymentService {
 
         paymentRepository.save(payment);
         return response;
+    }
+
+    @Transactional
+    public void simulateSuccess(Integer registrationId) {
+        Registration registration = registrationRepository.findById(registrationId).orElse(null);
+        if (registration != null) {
+            Payment payment = paymentRepository.findAll().stream()
+                .filter(p -> p.getRegistration() != null && p.getRegistration().getId().equals(registrationId))
+                .findFirst().orElse(null);
+            if (payment != null) {
+                TinggWebhookPayload payload = new TinggWebhookPayload();
+                payload.setMerchant_transaction_id(payment.getTransactionRef());
+                payload.setRequest_status_code(178);
+                processWebhook(payload, "{\"source\": \"simulated\"}");
+            }
+        }
     }
 }
 

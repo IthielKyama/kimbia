@@ -1,7 +1,10 @@
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View } from 'react-native';
+import { View, ActivityIndicator, Platform } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Linking from 'expo-linking';
 // @ts-ignore
 import './global.css';
 
@@ -21,68 +24,112 @@ import SubmissionSuccessScreen from './src/screens/SubmissionSuccessScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import PendingRacesScreen from './src/screens/PendingRacesScreen';
+import MyEventsScreen from './src/screens/MyEventsScreen';
 
 export type RootStackParamList = {
   Login: undefined;
   SignUp: undefined;
   ForgotPassword: undefined;
   Explore: undefined;
-  EventDetails: undefined;
+  EventDetails: { raceId: number, race?: any };
   Registration: undefined;
   Profile: undefined;
   Leaderboard: undefined;
   SubmitTime: undefined;
-  DigitalBib: undefined;
-  Checkout: undefined;
-  PaymentStatus: undefined;
+  DigitalBib: { registrationId: number };
+  Checkout: { raceId: number };
+  PaymentStatus: { registrationId: number };
   SubmissionSuccess: undefined;
   Notifications: undefined;
   Settings: undefined;
   PendingRaces: undefined;
+  MyEvents: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient();
 
 export default function App() {
-  return (
-    <SafeAreaProvider>
-      <View style={{ flex: 1, backgroundColor: '#0B0F19' }}>
-        <StatusBar style="light" />
-        <NavigationContainer>
-          <Stack.Navigator 
-            id="RootStack"
-            initialRouteName="Login"
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: '#0B0F19' },
-              animation: 'slide_from_right' // Industry standard push animation
-            }}
-          >
-            <Stack.Screen name="Login" component={LoginScreen} options={{ animation: 'fade' }} />
-            <Stack.Screen name="SignUp" component={SignUpScreen} options={{ animation: 'fade' }} />
-            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-            
-            {/* Fake Tab Screens (No animation for instant switching) */}
-            <Stack.Screen name="Explore" component={ExploreScreen} options={{ animation: 'none' }} />
-            <Stack.Screen name="Leaderboard" component={LeaderboardScreen} options={{ animation: 'none' }} />
-            <Stack.Screen name="PendingRaces" component={PendingRacesScreen} options={{ animation: 'none' }} />
-            <Stack.Screen name="Profile" component={ProfileScreen} options={{ animation: 'none' }} />
-            
-            {/* Standard Push Screens (Inherits slide_from_right) */}
-            <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
-            <Stack.Screen name="Registration" component={RegistrationScreen} />
-            <Stack.Screen name="SubmitTime" component={SubmitTimeScreen} />
-            <Stack.Screen name="DigitalBib" component={DigitalBibScreen} />
-            <Stack.Screen name="Checkout" component={CheckoutScreen} />
-            <Stack.Screen name="PaymentStatus" component={PaymentStatusScreen} options={{ animation: 'fade' }} />
-            <Stack.Screen name="SubmissionSuccess" component={SubmissionSuccessScreen} options={{ animation: 'fade' }} />
-            <Stack.Screen name="Notifications" component={NotificationsScreen} />
-            <Stack.Screen name="Settings" component={SettingsScreen} />
-          </Stack.Navigator>
-        </NavigationContainer>
+  const [isReady, setIsReady] = useState(false);
+  const [initialRoute, setInitialRoute] = useState<keyof RootStackParamList>('Login');
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const token = await AsyncStorage.getItem('token');
+        if (token) {
+          setInitialRoute('Explore');
+        }
+      } catch (e) {
+        // ignore
+      } finally {
+        setIsReady(true);
+      }
+    };
+    checkAuth();
+  }, []);
+
+  const linking = {
+    prefixes: [Linking.createURL('/'), 'http://localhost:8081', 'https://localhost:8081'],
+    config: {
+      screens: {
+        PaymentStatus: 'payment-status/:registrationId',
+      }
+    }
+  };
+
+  if (!isReady) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#0B0F19', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#FF4C29" />
       </View>
-    </SafeAreaProvider>
+    );
+  }
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <SafeAreaProvider>
+        <View style={{ flex: 1, backgroundColor: '#0B0F19' }}>
+          <StatusBar style="light" />
+          <NavigationContainer linking={linking}>
+            <Stack.Navigator 
+              id="RootStack"
+              initialRouteName={initialRoute}
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: '#0B0F19' },
+                animation: 'slide_from_right' // Industry standard push animation
+              }}
+            >
+              <Stack.Screen name="Login" component={LoginScreen} options={{ animation: 'fade' }} />
+              <Stack.Screen name="SignUp" component={SignUpScreen} options={{ animation: 'fade' }} />
+              <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+              
+              {/* Fake Tab Screens (No animation for instant switching) */}
+              <Stack.Screen name="Explore" component={ExploreScreen} options={{ animation: 'none' }} />
+              <Stack.Screen name="Leaderboard" component={LeaderboardScreen} options={{ animation: 'none' }} />
+              <Stack.Screen name="MyEvents" component={MyEventsScreen} options={{ animation: 'none' }} />
+              <Stack.Screen name="PendingRaces" component={PendingRacesScreen} options={{ animation: 'none' }} />
+              <Stack.Screen name="Profile" component={ProfileScreen} options={{ animation: 'none' }} />
+              
+              {/* Standard Push Screens (Inherits slide_from_right) */}
+              <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
+              <Stack.Screen name="Registration" component={RegistrationScreen} />
+              <Stack.Screen name="SubmitTime" component={SubmitTimeScreen} />
+              <Stack.Screen name="DigitalBib" component={DigitalBibScreen} />
+              <Stack.Screen name="Checkout" component={CheckoutScreen} />
+              <Stack.Screen name="PaymentStatus" component={PaymentStatusScreen} options={{ animation: 'fade' }} />
+              <Stack.Screen name="SubmissionSuccess" component={SubmissionSuccessScreen} options={{ animation: 'fade' }} />
+              <Stack.Screen name="Notifications" component={NotificationsScreen} />
+              <Stack.Screen name="Settings" component={SettingsScreen} />
+            </Stack.Navigator>
+          </NavigationContainer>
+        </View>
+      </SafeAreaProvider>
+    </QueryClientProvider>
   );
 }

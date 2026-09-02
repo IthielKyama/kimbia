@@ -36,6 +36,7 @@ public class AuthService {
         user.setMobileNumber(request.getMobileNumber());
         user.setAgeGroup(request.getAgeGroup());
         user.setGender(request.getGender());
+        user.setDateOfBirth(request.getDateOfBirth());
         user.setRole(Role.RUNNER);
         user.setAuthProvider(AuthProvider.LOCAL);
         user.setStatus(AccountStatus.ACTIVE);

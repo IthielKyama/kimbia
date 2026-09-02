@@ -3,6 +3,8 @@ package com.kimbia.backend.entity;
 import com.kimbia.backend.enums.AccountStatus;
 import com.kimbia.backend.enums.AuthProvider;
 import com.kimbia.backend.enums.Role;
+import com.kimbia.backend.enums.AgeGroup;
+import com.kimbia.backend.enums.Gender;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -35,14 +37,20 @@ public class User implements UserDetails {
 
     private String mobileNumber;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private String passwordHash;
 
     @Enumerated(EnumType.STRING)
     private AuthProvider authProvider;
 
     private String oauthProviderId;
-    private String ageGroup;
-    private String gender;
+    @Enumerated(EnumType.STRING)
+    private AgeGroup ageGroup;
+
+    @Enumerated(EnumType.STRING)
+    private Gender gender;
+
+    private String dateOfBirth;
 
     @Enumerated(EnumType.STRING)
     private AccountStatus status;
@@ -55,48 +63,59 @@ public class User implements UserDetails {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @OneToMany(mappedBy = "organizer")
     private List<Race> organizes;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @OneToMany(mappedBy = "user")
     private List<Registration> registrations;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @OneToMany(mappedBy = "user")
     private List<Payment> payments;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @OneToMany(mappedBy = "moderatedBy")
     private List<RaceResult> moderatedResults;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @Override
     public String getPassword() {
         return passwordHash;
     }
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @Override
     public String getUsername() {
         return email;
     }
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @Override
     public boolean isAccountNonExpired() {
         return true;
     }
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @Override
     public boolean isAccountNonLocked() {
         return true;
     }
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @Override
     public boolean isCredentialsNonExpired() {
         return true;
     }
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @Override
     public boolean isEnabled() {
         return true;

@@ -20,6 +20,7 @@ public class Race {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @ManyToOne
     @JoinColumn(name = "organizer_id")
     private User organizer;
@@ -41,6 +42,7 @@ public class Race {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @OneToMany(mappedBy = "race")
     private List<Registration> registrations;
 }

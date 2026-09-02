@@ -18,6 +18,7 @@ public class RaceResult {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @OneToOne
     @JoinColumn(name = "registration_id")
     private Registration registration;
@@ -29,6 +30,7 @@ public class RaceResult {
     @Enumerated(EnumType.STRING)
     private ModerationStatus moderationStatus;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @ManyToOne
     @JoinColumn(name = "moderated_by")
     private User moderatedBy;

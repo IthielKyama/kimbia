@@ -21,6 +21,7 @@ public class Registration {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
@@ -43,9 +44,11 @@ public class Registration {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @OneToMany(mappedBy = "registration")
     private List<Payment> payments;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @OneToOne(mappedBy = "registration")
     private RaceResult raceResult;
 }

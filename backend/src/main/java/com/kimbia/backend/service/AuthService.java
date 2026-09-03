@@ -37,9 +37,18 @@ public class AuthService {
         user.setAgeGroup(request.getAgeGroup());
         user.setGender(request.getGender());
         user.setDateOfBirth(request.getDateOfBirth());
-        user.setRole(Role.RUNNER);
+        if (request.getRole() == Role.SUPER_ADMIN) {
+            throw new IllegalArgumentException("Registration of SUPER_ADMIN accounts is not permitted.");
+        }
+
+        if (request.getRole() == Role.RACE_ADMIN) {
+            user.setRole(Role.RACE_ADMIN);
+            user.setStatus(AccountStatus.PENDING_VETTING);
+        } else {
+            user.setRole(Role.RUNNER);
+            user.setStatus(AccountStatus.ACTIVE);
+        }
         user.setAuthProvider(AuthProvider.LOCAL);
-        user.setStatus(AccountStatus.ACTIVE);
 
         userRepository.save(user);
 

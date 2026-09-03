@@ -2,6 +2,7 @@ package com.kimbia.backend.dto;
 
 import com.kimbia.backend.enums.AgeGroup;
 import com.kimbia.backend.enums.Gender;
+import com.kimbia.backend.enums.Role;
 import lombok.Data;
 
 @Data
@@ -13,4 +14,5 @@ public class RegisterRequest {
     private AgeGroup ageGroup;
     private Gender gender;
     private String dateOfBirth; // Added this since the user asked about date of birth input field
+    private Role role;
 }

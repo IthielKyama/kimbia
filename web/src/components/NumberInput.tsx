@@ -1,10 +1,10 @@
-import React from 'react';
+import type { InputHTMLAttributes, ChangeEvent, ReactNode } from 'react';
 import { Plus, Minus } from 'lucide-react';
 
-interface NumberInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
+interface NumberInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
   value: string | number;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  prefixNode?: React.ReactNode;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  prefixNode?: ReactNode;
 }
 
 export function NumberInput({ value, onChange, prefixNode, className = '', ...props }: NumberInputProps) {

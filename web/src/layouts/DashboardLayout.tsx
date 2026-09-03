@@ -1,17 +1,28 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, CalendarPlus, Trophy, Users, Menu, X, LogOut } from 'lucide-react';
 import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 export function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const { role, user, logout } = useAuth();
 
-  const navItems = [
-    { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { label: 'My Races', path: '/races', icon: CalendarPlus },
-    { label: 'Awards', path: '/awards', icon: Trophy },
-    { label: 'Organizers', path: '/admin/organizers', icon: Users, role: 'SUPER_ADMIN' },
+  const isSuperAdmin = role === 'SUPER_ADMIN';
+
+  const allNavItems = [
+    { label: 'Organizers', path: '/admin/organizers', icon: Users, forSuperAdmin: true },
+    { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, forRaceAdmin: true },
+    { label: 'My Races', path: '/races', icon: CalendarPlus, forRaceAdmin: true },
+    { label: 'Awards', path: '/awards', icon: Trophy, forRaceAdmin: true },
   ];
+
+  const navItems = allNavItems.filter((item) => {
+    if (isSuperAdmin) {
+      return item.forSuperAdmin;
+    }
+    return item.forRaceAdmin;
+  });
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
@@ -34,6 +45,27 @@ export function DashboardLayout() {
         <div className="h-16 hidden md:flex items-center px-6 border-b border-gray-800">
           <span className="text-2xl font-bold text-primary tracking-wide font-outfit">KIMBIA</span>
         </div>
+
+        {/* User Info Badge */}
+        {user && (
+          <div className="px-6 py-4 border-b border-gray-800/80 bg-background/30 font-geist">
+            <div className="text-sm font-bold text-white truncate">{user.name}</div>
+            <div className="text-xs text-placeholder truncate">{user.email}</div>
+            <div className="mt-2">
+              <span
+                className={`inline-block px-2 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-wider ${
+                  role === 'SUPER_ADMIN'
+                    ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                    : role === 'RACE_ADMIN_APPROVED'
+                    ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                    : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
+                }`}
+              >
+                {role.replace(/_/g, ' ')}
+              </span>
+            </div>
+          </div>
+        )}
 
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
           {navItems.map((item) => {
@@ -59,7 +91,10 @@ export function DashboardLayout() {
         </nav>
 
         <div className="p-4 border-t border-gray-800">
-          <button className="flex items-center w-full px-4 py-3 text-red-500 hover:bg-red-500/10 rounded-xl transition-colors font-geist">
+          <button
+            onClick={logout}
+            className="flex items-center w-full px-4 py-3 text-red-500 hover:bg-red-500/10 rounded-xl transition-colors font-geist"
+          >
             <LogOut size={20} className="mr-3" />
             <span className="font-medium">Sign out</span>
           </button>

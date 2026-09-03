@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import { useState, type FormEvent, type ChangeEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 export function Register() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { register } = useAuth();
   
   const [formData, setFormData] = useState({
     name: '',
@@ -14,8 +14,9 @@ export function Register() {
     confirmPassword: ''
   });
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -23,13 +24,31 @@ export function Register() {
     if (!formData.organization) return setError('Please enter your organization name.');
     if (!formData.email) return setError('Please enter your email address.');
     if (!formData.password) return setError('Please enter a password.');
+    if (formData.password.length < 6) return setError('Password must be at least 6 characters.');
     if (formData.password !== formData.confirmPassword) return setError('Passwords do not match.');
 
-    login('RACE_ADMIN_PENDING');
-    navigate('/dashboard');
+    try {
+      setSubmitting(true);
+      await register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        organization: formData.organization,
+      });
+      navigate('/dashboard');
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err?.message ||
+        'Registration failed. Please check your details.';
+      setError(message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFormData({...formData, [e.target.name]: e.target.value});
   };
 
@@ -121,9 +140,10 @@ export function Register() {
             <div>
               <button
                 type="submit"
-                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-primary hover:opacity-90 focus:outline-none transition-opacity"
+                disabled={submitting}
+                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-primary hover:opacity-90 focus:outline-none transition-opacity disabled:opacity-50"
               >
-                Submit Application
+                {submitting ? 'Submitting Application...' : 'Submit Application'}
               </button>
             </div>
           </form>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
@@ -6,11 +6,12 @@ export function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
   
-  const [email, setEmail] = useState('admin@kimbia.com');
-  const [password, setPassword] = useState('password');
+  const [email, setEmail] = useState('organizer@kimbia.com');
+  const [password, setPassword] = useState('password123');
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -23,15 +24,22 @@ export function Login() {
       return;
     }
 
-    if (email.includes('super')) {
-      login('SUPER_ADMIN');
-      navigate('/admin/organizers');
-    } else if (email.includes('pending')) {
-      login('RACE_ADMIN_PENDING');
-      navigate('/dashboard');
-    } else {
-      login('RACE_ADMIN_APPROVED');
-      navigate('/dashboard');
+    try {
+      setSubmitting(true);
+      const { role } = await login(email, password);
+      if (role === 'SUPER_ADMIN') {
+        navigate('/admin/organizers');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.error ||
+        err?.message ||
+        'Failed to log in. Please check your credentials.';
+      setError(message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -65,7 +73,32 @@ export function Login() {
                   className="appearance-none block w-full px-3 py-2 border border-gray-700 rounded-xl shadow-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm bg-background text-white"
                 />
               </div>
-              <p className="mt-2 text-xs text-placeholder">Hint: Use 'super', 'pending', or any other email for testing roles.</p>
+              <div className="mt-2 text-xs text-placeholder space-y-1">
+                <p className="font-semibold text-gray-400">Demo Accounts (Password: <code className="text-primary">password123</code>):</p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => { setEmail('organizer@kimbia.com'); setPassword('password123'); }}
+                    className="px-2 py-0.5 bg-green-500/10 hover:bg-green-500/20 text-green-400 rounded text-xs border border-green-500/20"
+                  >
+                    Approved Admin
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setEmail('pending@kimbia.com'); setPassword('password123'); }}
+                    className="px-2 py-0.5 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 rounded text-xs border border-yellow-500/20"
+                  >
+                    Pending Admin
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setEmail('superadmin@kimbia.com'); setPassword('password123'); }}
+                    className="px-2 py-0.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 rounded text-xs border border-purple-500/20"
+                  >
+                    Super Admin
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div>
@@ -83,9 +116,10 @@ export function Login() {
             <div>
               <button
                 type="submit"
-                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-primary hover:opacity-90 focus:outline-none transition-opacity"
+                disabled={submitting}
+                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-primary hover:opacity-90 focus:outline-none transition-opacity disabled:opacity-50"
               >
-                Sign in
+                {submitting ? 'Signing in...' : 'Sign in'}
               </button>
             </div>
           </form>

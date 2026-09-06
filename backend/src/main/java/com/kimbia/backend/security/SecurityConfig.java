@@ -30,7 +30,15 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
-                        .requestMatchers("/api/auth/**", "/api/races/**", "/api/webhooks/**", "/error")
+                        .requestMatchers(
+                                "/api/auth/**",
+                                "/api/races/**",
+                                "/api/webhooks/**",
+                                "/api/results/**",
+                                "/api/awards/**",
+                                "/api/admin/**",
+                                "/error"
+                        )
                         .permitAll()
                         .anyRequest()
                         .authenticated()

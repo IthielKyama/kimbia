@@ -184,6 +184,187 @@
                     }
                 }
             ]
+        },
+        {
+            "name": "Results & Moderation",
+            "item": [
+                {
+                    "name": "Submit Race Time",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"registration_id\": 1,\n  \"finishing_time\": \"00:24:15\",\n  \"proof_image_url\": \"https://images.unsplash.com/photo-1551698618-1dfe5d97d256\",\n  \"is_dnf\": false\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:8081/api/results",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "8081",
+                            "path": ["api", "results"]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Race Leaderboard",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8081/api/races/1/leaderboard",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "8081",
+                            "path": ["api", "races", "1", "leaderboard"]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Pending Results (Admin)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:8081/api/admin/races/1/results?moderation_status=PENDING",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "8081",
+                            "path": ["api", "admin", "races", "1", "results"],
+                            "query": [
+                                {
+                                    "key": "moderation_status",
+                                    "value": "PENDING"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Moderate Race Result (Admin)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"moderation_status\": \"APPROVED\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:8081/api/admin/results/1/moderate",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "8081",
+                            "path": ["api", "admin", "results", "1", "moderate"]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Awards Distribution",
+            "item": [
+                {
+                    "name": "Initiate Award Payout (Admin)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"user_id\": 1,\n  \"registration_id\": 1,\n  \"award_type\": \"MONEY\",\n  \"destination_account\": \"+254700000000\",\n  \"amount\": 5000.00\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:8081/api/awards/payout",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "8081",
+                            "path": ["api", "awards", "payout"]
+                        }
+                    }
+                },
+                {
+                    "name": "Tingg Payout Callback (Webhook)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"merchant_transaction_id\": \"AWD_REPLACE_ME\",\n  \"request_status_code\": 217,\n  \"request_status_description\": \"Transaction completed successfully\",\n  \"beep_transaction_id\": \"BEEP_12345\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:8081/api/webhooks/tingg/payout-callback",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "8081",
+                            "path": ["api", "webhooks", "tingg", "payout-callback"]
+                        }
+                    }
+                },
+                {
+                    "name": "Simulate Payout Success (Local Dev)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8081/api/awards/simulate/1",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "8081",
+                            "path": ["api", "awards", "simulate", "1"]
+                        }
+                    }
+                },
+                {
+                    "name": "List Award Payouts",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8081/api/awards",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "8081",
+                            "path": ["api", "awards"]
+                        }
+                    }
+                }
+            ]
         }
     ]
 }

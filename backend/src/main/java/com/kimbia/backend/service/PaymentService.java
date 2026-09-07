@@ -1,40 +1,48 @@
 package com.kimbia.backend.service;
 
+import com.kimbia.backend.dto.AwardPayoutRequest;
 import com.kimbia.backend.dto.CheckoutResponse;
 import com.kimbia.backend.dto.tingg.TinggCheckoutPayload;
+import com.kimbia.backend.dto.tingg.TinggPayoutCallbackPayload;
+import com.kimbia.backend.dto.tingg.TinggPayoutResponse;
 import com.kimbia.backend.dto.tingg.TinggWebhookAckResponse;
 import com.kimbia.backend.dto.tingg.TinggWebhookPayload;
 import com.kimbia.backend.entity.Payment;
 import com.kimbia.backend.entity.Race;
+import com.kimbia.backend.entity.RaceResult;
 import com.kimbia.backend.entity.Registration;
 import com.kimbia.backend.entity.User;
+import com.kimbia.backend.enums.AwardType;
+import com.kimbia.backend.enums.ModerationStatus;
 import com.kimbia.backend.enums.PaymentStatus;
 import com.kimbia.backend.enums.TransactionType;
 import com.kimbia.backend.repository.PaymentRepository;
 import com.kimbia.backend.repository.RaceRepository;
+import com.kimbia.backend.repository.RaceResultRepository;
 import com.kimbia.backend.repository.RegistrationRepository;
 import com.kimbia.backend.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class PaymentService {
 
     private final UserRepository userRepository;
     private final RaceRepository raceRepository;
     private final RegistrationRepository registrationRepository;
     private final PaymentRepository paymentRepository;
+    private final RaceResultRepository raceResultRepository;
     private final TinggService tinggService;
 
-    public PaymentService(UserRepository userRepository, RaceRepository raceRepository, RegistrationRepository registrationRepository, PaymentRepository paymentRepository, TinggService tinggService) {
-        this.userRepository = userRepository;
-        this.raceRepository = raceRepository;
-        this.registrationRepository = registrationRepository;
-        this.paymentRepository = paymentRepository;
-        this.tinggService = tinggService;
-    }
 
     @Transactional
     public CheckoutResponse initiateCheckout(String userEmail, Integer raceId, String returnUrl) {
@@ -166,6 +174,131 @@ public class PaymentService {
                 processWebhook(payload, "{\"source\": \"simulated\"}");
             }
         }
+    }
+
+    @Transactional
+    public Map<String, Object> processAwardPayout(AwardPayoutRequest request, Authentication auth) {
+        if (request.getRegistrationId() == null) {
+            throw new IllegalArgumentException("registration_id is required");
+        }
+        if (request.getAmount() == null || request.getAmount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Valid payout amount is required");
+        }
+
+        Registration registration = registrationRepository.findById(request.getRegistrationId())
+                .orElseThrow(() -> new IllegalArgumentException("Registration not found for ID: " + request.getRegistrationId()));
+
+        User user = null;
+        if (request.getUserId() != null) {
+            user = userRepository.findById(request.getUserId()).orElse(null);
+        }
+        if (user == null) {
+            user = registration.getUser();
+        }
+        if (user == null) {
+            throw new IllegalArgumentException("User could not be determined for registration ID: " + request.getRegistrationId());
+        }
+
+        RaceResult result = raceResultRepository.findByRegistrationId(registration.getId()).orElse(null);
+        if (result == null) {
+            throw new IllegalStateException("No race result found for registration ID: " + registration.getId());
+        }
+        if (result.getModerationStatus() != ModerationStatus.APPROVED) {
+            throw new IllegalStateException("Cannot disburse award: Race result status is " + result.getModerationStatus() + ", but must be APPROVED.");
+        }
+
+        AwardType awardType = AwardType.MONEY;
+        if (request.getAwardType() != null && "AIRTIME".equalsIgnoreCase(request.getAwardType().trim())) {
+            awardType = AwardType.AIRTIME;
+        }
+
+        String destinationAccount = request.getDestinationAccount();
+        if (destinationAccount == null || destinationAccount.isBlank()) {
+            destinationAccount = user.getMobileNumber();
+        }
+        if (destinationAccount == null || destinationAccount.isBlank()) {
+            throw new IllegalArgumentException("destination_account or user mobile number is required for award payout");
+        }
+
+        Payment payment = new Payment();
+        payment.setUser(user);
+        payment.setRegistration(registration);
+        payment.setTransactionType(TransactionType.AWARD);
+        payment.setAwardType(awardType);
+        payment.setAmount(request.getAmount());
+        payment.setDestinationAccount(destinationAccount);
+        payment.setStatus(PaymentStatus.PENDING);
+        payment.setPaymentMethod("TINGG_BEEP");
+
+        String txRef = "AWD_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+        payment.setTransactionRef(txRef);
+        payment = paymentRepository.save(payment);
+
+        String serviceCode = null;
+        if (registration.getRace() != null && registration.getRace().getOrganizer() != null) {
+            serviceCode = registration.getRace().getOrganizer().getTinggServiceCode();
+        }
+
+        TinggPayoutResponse payoutResponse = tinggService.initiatePayout(payment, serviceCode);
+
+        return Map.of(
+                "payment_id", payment.getId(),
+                "merchant_transaction_id", payment.getTransactionRef(),
+                "status", payment.getStatus().name(),
+                "award_type", payment.getAwardType().name(),
+                "amount", payment.getAmount(),
+                "destination_account", payment.getDestinationAccount(),
+                "gateway_status", payoutResponse != null && payoutResponse.getStatus_code() != null ? payoutResponse.getStatus_code() : "PENDING",
+                "message", "Award payout initiated successfully"
+        );
+    }
+
+    @Transactional
+    public Map<String, Object> handlePayoutCallback(TinggPayoutCallbackPayload payload, String rawPayload) {
+        if (payload.getMerchant_transaction_id() == null || payload.getMerchant_transaction_id().isBlank()) {
+            throw new IllegalArgumentException("merchant_transaction_id is required in payout callback");
+        }
+
+        Payment payment = paymentRepository.findByTransactionRef(payload.getMerchant_transaction_id())
+                .orElseThrow(() -> new IllegalArgumentException("Payment not found for transaction reference: " + payload.getMerchant_transaction_id()));
+
+        // Idempotency check
+        if (payment.getStatus() == PaymentStatus.COMPLETED) {
+            return Map.of(
+                    "status", "already_processed",
+                    "transaction_ref", payment.getTransactionRef(),
+                    "payment_status", payment.getStatus().name()
+            );
+        }
+
+        payment.setRawWebhookPayload(rawPayload != null ? rawPayload : "{\"callback\": \"received\"}");
+
+        Integer statusCode = payload.getRequest_status_code();
+        if (statusCode != null && (statusCode == 217 || statusCode == 178 || statusCode == 200)) {
+            payment.setStatus(PaymentStatus.COMPLETED);
+        } else {
+            payment.setStatus(PaymentStatus.FAILED);
+        }
+
+        paymentRepository.save(payment);
+        return Map.of(
+                "status", "acknowledged",
+                "payment_status", payment.getStatus().name(),
+                "transaction_ref", payment.getTransactionRef()
+        );
+    }
+
+    @Transactional
+    public Payment simulatePayoutSuccess(Integer paymentId) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new IllegalArgumentException("Payment not found with ID: " + paymentId));
+        payment.setStatus(PaymentStatus.COMPLETED);
+        payment.setRawWebhookPayload("{\"source\": \"simulated_payout_webhook\"}");
+        return paymentRepository.save(payment);
+    }
+
+    public List<Payment> getAwardPayments() {
+        return paymentRepository.findByTransactionType(TransactionType.AWARD);
     }
 }
 

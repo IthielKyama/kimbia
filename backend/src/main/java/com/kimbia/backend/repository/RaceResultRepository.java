@@ -13,9 +13,11 @@ import java.util.Optional;
 @Repository
 public interface RaceResultRepository extends JpaRepository<RaceResult, Integer> {
 
-    Optional<RaceResult> findByRegistrationId(Integer registrationId);
+    @Query("SELECT r FROM RaceResult r WHERE r.registration.id = :registrationId")
+    Optional<RaceResult> findByRegistrationId(@Param("registrationId") Integer registrationId);
 
-    boolean existsByRegistrationId(Integer registrationId);
+    @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM RaceResult r WHERE r.registration.id = :registrationId")
+    boolean existsByRegistrationId(@Param("registrationId") Integer registrationId);
 
     @Query("SELECT r FROM RaceResult r WHERE r.registration.race.id = :raceId")
     List<RaceResult> findByRaceId(@Param("raceId") Integer raceId);

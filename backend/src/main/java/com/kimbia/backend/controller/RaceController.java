@@ -1,13 +1,11 @@
 package com.kimbia.backend.controller;
 
 import com.kimbia.backend.entity.Race;
+import com.kimbia.backend.service.RaceResultService;
 import com.kimbia.backend.service.RaceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -17,6 +15,7 @@ import java.util.List;
 public class RaceController {
 
     private final RaceService raceService;
+    private final RaceResultService raceResultService;
 
     @GetMapping
     public ResponseEntity<List<Race>> getPublishedRaces() {
@@ -26,5 +25,13 @@ public class RaceController {
     @GetMapping("/{id}")
     public ResponseEntity<Race> getRaceById(@PathVariable Integer id) {
         return ResponseEntity.ok(raceService.getRaceById(id));
+    }
+
+    @GetMapping("/{raceId}/leaderboard")
+    public ResponseEntity<?> getLeaderboard(
+            @PathVariable Integer raceId,
+            @RequestParam(required = false) String category
+    ) {
+        return ResponseEntity.ok(raceResultService.getLeaderboard(raceId, category));
     }
 }

@@ -51,4 +51,20 @@ public class Registration {
     @com.fasterxml.jackson.annotation.JsonIgnore
     @OneToOne(mappedBy = "registration")
     private RaceResult raceResult;
+
+    @com.fasterxml.jackson.annotation.JsonProperty("has_submitted_time")
+    public Boolean getHasSubmittedTime() {
+        return raceResult != null && raceResult.getFinishingTime() != null && !raceResult.getFinishingTime().trim().isEmpty();
+    }
+
+    @com.fasterxml.jackson.annotation.JsonProperty("finishing_time")
+    public String getFinishingTime() {
+        return raceResult != null ? raceResult.getFinishingTime() : null;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonProperty("result_moderation_status")
+    public String getResultModerationStatus() {
+        return (raceResult != null && raceResult.getModerationStatus() != null)
+                ? raceResult.getModerationStatus().name() : null;
+    }
 }

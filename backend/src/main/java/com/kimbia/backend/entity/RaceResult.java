@@ -79,4 +79,25 @@ public class RaceResult {
     public String getBibNumber() {
         return registration != null ? registration.getBibNumber() : null;
     }
+
+    @com.fasterxml.jackson.annotation.JsonProperty("user_id")
+    public Integer getUserId() {
+        return (registration != null && registration.getUser() != null) ? registration.getUser().getId() : null;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonProperty("runner_phone")
+    public String getRunnerPhone() {
+        return (registration != null && registration.getUser() != null) ? registration.getUser().getMobileNumber() : null;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonProperty("category")
+    public String getCategory() {
+        return (registration != null && registration.getRace() != null) ? registration.getRace().getDistance() : null;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonProperty("gender")
+    public String getGender() {
+        return (registration != null && registration.getUser() != null && registration.getUser().getGender() != null)
+                ? registration.getUser().getGender().name() : null;
+    }
 }

@@ -34,4 +34,12 @@ public class RaceController {
     ) {
         return ResponseEntity.ok(raceResultService.getLeaderboard(raceId, category));
     }
+
+    @GetMapping("/{raceId}/results")
+    public ResponseEntity<?> getResults(
+            @PathVariable Integer raceId,
+            @RequestParam(name = "moderation_status", required = false) com.kimbia.backend.enums.ModerationStatus moderationStatus
+    ) {
+        return ResponseEntity.ok(raceResultService.getResultsForRace(raceId, moderationStatus));
+    }
 }

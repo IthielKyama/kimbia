@@ -13,7 +13,10 @@ import java.util.Optional;
 @Repository
 public interface RegistrationRepository extends JpaRepository<Registration, Integer> {
     List<Registration> findByRaceId(Integer raceId);
-    List<Registration> findByUserId(Integer userId);
+
+    @org.springframework.data.jpa.repository.Query("SELECT r FROM Registration r LEFT JOIN FETCH r.raceResult LEFT JOIN FETCH r.race WHERE r.user.id = :userId")
+    List<Registration> findByUserId(@org.springframework.data.repository.query.Param("userId") Integer userId);
+
     Optional<Registration> findByUserAndRace(User user, Race race);
 }
 

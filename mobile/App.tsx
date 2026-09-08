@@ -35,11 +35,11 @@ export type RootStackParamList = {
   Registration: undefined;
   Profile: undefined;
   Leaderboard: undefined;
-  SubmitTime: undefined;
+  SubmitTime: { registrationId?: number; raceName?: string; distance?: string } | undefined;
   DigitalBib: { registrationId: number };
   Checkout: { raceId: number };
   PaymentStatus: { registrationId: number };
-  SubmissionSuccess: undefined;
+  SubmissionSuccess: { submittedTime?: string; raceName?: string } | undefined;
   Notifications: undefined;
   Settings: undefined;
   PendingRaces: undefined;

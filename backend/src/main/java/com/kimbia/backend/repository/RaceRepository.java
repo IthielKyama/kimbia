@@ -10,4 +10,9 @@ import java.util.List;
 @Repository
 public interface RaceRepository extends JpaRepository<Race, Integer> {
     List<Race> findByStatus(RaceStatus status);
+
+    @org.springframework.data.jpa.repository.Query("SELECT r FROM Race r WHERE r.organizer.id = :organizerId ORDER BY r.createdAt DESC")
+    List<Race> findByOrganizerIdOrderByCreatedAtDesc(@org.springframework.data.repository.query.Param("organizerId") Integer organizerId);
+
+    List<Race> findAllByOrderByCreatedAtDesc();
 }

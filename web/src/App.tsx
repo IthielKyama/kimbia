@@ -3,6 +3,7 @@ import { Organizers } from './pages/admin/Organizers';
 import { Dashboard } from './pages/admin/Dashboard';
 import { Races } from './pages/admin/Races';
 import { NewRace } from './pages/admin/NewRace';
+import { EditRace } from './pages/admin/EditRace';
 import { Leaderboard } from './pages/admin/Leaderboard';
 import { Awards } from './pages/admin/Awards';
 import { AuthProvider } from './context/AuthContext';
@@ -35,7 +36,8 @@ function App() {
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/races" element={<Races />} />
                 <Route path="/races/new" element={<NewRace />} />
-                <Route path="/races/:id" element={<div className="p-4">Race Details</div>} />
+                <Route path="/races/:id" element={<EditRace />} />
+                <Route path="/races/:id/edit" element={<EditRace />} />
                 <Route path="/races/:id/leaderboard" element={<Leaderboard />} />
                 <Route path="/awards" element={<Awards />} />
               </Route>

@@ -69,6 +69,10 @@ export default function MyEventsScreen({ navigation }: { navigation: MyEventsScr
           registrations?.map((reg: any) => {
             const race = reg.race;
             const isCompleted = reg.paymentStatus === 'COMPLETED';
+            const hasSubmitted = Boolean(reg.has_submitted_time || reg.finishing_time || reg.hasSubmittedTime);
+            const moderationStatus = reg.result_moderation_status || reg.resultModerationStatus || 'PENDING';
+            const isApproved = moderationStatus === 'APPROVED';
+            const isRejected = moderationStatus === 'REJECTED';
 
             return (
               <View key={reg.id} className="bg-surface rounded-2xl overflow-hidden mb-5 border border-[#243249]">
@@ -78,11 +82,37 @@ export default function MyEventsScreen({ navigation }: { navigation: MyEventsScr
                 />
                 <View className="p-4 flex-col gap-3">
                   <View className="flex-row items-center justify-between">
-                    <View className={`px-2 py-1 rounded-md flex-row items-center gap-1 ${isCompleted ? 'bg-[#CCFF00]/10' : 'bg-[#FF4C29]/10'}`}>
-                      <Feather name={isCompleted ? 'check-circle' : 'clock'} size={12} color={isCompleted ? '#CCFF00' : '#FF4C29'} />
-                      <Text className={`font-bold text-xs ${isCompleted ? 'text-[#CCFF00]' : 'text-[#FF4C29]'}`}>
-                        {isCompleted ? 'PAID' : 'PENDING PAYMENT'}
-                      </Text>
+                    <View className="flex-row items-center gap-2">
+                      <View className={`px-2 py-1 rounded-md flex-row items-center gap-1 ${isCompleted ? 'bg-[#CCFF00]/10' : 'bg-[#FF4C29]/10'}`}>
+                        <Feather name={isCompleted ? 'check-circle' : 'clock'} size={12} color={isCompleted ? '#CCFF00' : '#FF4C29'} />
+                        <Text className={`font-bold text-xs ${isCompleted ? 'text-[#CCFF00]' : 'text-[#FF4C29]'}`}>
+                          {isCompleted ? 'PAID' : 'PENDING PAYMENT'}
+                        </Text>
+                      </View>
+                      {hasSubmitted && (
+                        <View className={`px-2 py-1 rounded-md flex-row items-center gap-1 ${
+                          isApproved 
+                            ? 'bg-[#CCFF00]/10 border border-[#CCFF00]/20' 
+                            : isRejected 
+                              ? 'bg-red-500/10 border border-red-500/20' 
+                              : 'bg-yellow-500/10 border border-yellow-500/20'
+                        }`}>
+                          <Feather 
+                            name={isApproved ? 'check-circle' : isRejected ? 'x-circle' : 'clock'} 
+                            size={11} 
+                            color={isApproved ? '#CCFF00' : isRejected ? '#EF4444' : '#EAB308'} 
+                          />
+                          <Text className={`font-bold text-[11px] ${
+                            isApproved 
+                              ? 'text-[#CCFF00]' 
+                              : isRejected 
+                                ? 'text-red-400' 
+                                : 'text-yellow-400'
+                          }`}>
+                            {isApproved ? 'APPROVED' : isRejected ? 'REJECTED' : 'UNDER REVIEW'}
+                          </Text>
+                        </View>
+                      )}
                     </View>
                     <Text className="text-primary font-bold text-sm">KES {race?.fee}</Text>
                   </View>
@@ -103,13 +133,43 @@ export default function MyEventsScreen({ navigation }: { navigation: MyEventsScr
                         <Feather name="credit-card" size={16} color="#fff" />
                         <Text className="text-white font-bold">Digital Bib</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity 
-                        className="flex-1 bg-primary py-3 rounded-xl items-center flex-row justify-center gap-2 shadow-lg shadow-primary/20"
-                        onPress={() => navigation.navigate('SubmitTime')}
-                      >
-                        <Feather name="upload-cloud" size={16} color="#fff" />
-                        <Text className="text-white font-bold">Submit Time</Text>
-                      </TouchableOpacity>
+
+                      {isRejected ? (
+                        <TouchableOpacity 
+                          className="flex-1 bg-red-600/20 border border-red-500/30 py-3 rounded-xl items-center flex-row justify-center gap-2"
+                          onPress={() => navigation.navigate('SubmitTime', { registrationId: reg.id, raceName: race?.name, distance: race?.distance })}
+                        >
+                          <Feather name="refresh-cw" size={15} color="#EF4444" />
+                          <Text className="text-red-400 font-bold text-xs">Re-submit Time</Text>
+                        </TouchableOpacity>
+                      ) : hasSubmitted ? (
+                        <TouchableOpacity 
+                          className="flex-1 bg-[#1E2A3E] border border-[#243249] py-2.5 px-3 rounded-xl items-center flex-row justify-center gap-2"
+                          onPress={() => navigation.navigate('Leaderboard')}
+                        >
+                          <Feather 
+                            name={isApproved ? "check-circle" : "clock"} 
+                            size={16} 
+                            color={isApproved ? "#CCFF00" : "#EAB308"} 
+                          />
+                          <View className="flex-col items-start">
+                            <Text className={isApproved ? "text-[#CCFF00] font-bold text-[10px] uppercase" : "text-yellow-400 font-bold text-[10px] uppercase"}>
+                              {isApproved ? 'VERIFIED TIME' : 'TIME SUBMITTED'}
+                            </Text>
+                            <Text className="text-white font-mono font-bold text-xs" numberOfLines={1}>
+                              {reg.finishing_time || 'Under Review'}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity 
+                          className="flex-1 bg-primary py-3 rounded-xl items-center flex-row justify-center gap-2 shadow-lg shadow-primary/20"
+                          onPress={() => navigation.navigate('SubmitTime', { registrationId: reg.id, raceName: race?.name, distance: race?.distance })}
+                        >
+                          <Feather name="upload-cloud" size={16} color="#fff" />
+                          <Text className="text-white font-bold">Submit Time</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   ) : (
                     <TouchableOpacity 

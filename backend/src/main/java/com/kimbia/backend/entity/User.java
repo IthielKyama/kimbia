@@ -11,6 +11,7 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -55,10 +56,26 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     private AccountStatus status;
 
+    @JsonProperty("tingg_service_code")
     private String tinggServiceCode;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
+
+    @JsonProperty("organization")
+    public String getOrganization() {
+        return name;
+    }
+
+    @JsonProperty("phone")
+    public String getPhone() {
+        return mobileNumber;
+    }
+
+    @JsonProperty("tinggAccountId")
+    public String getTinggAccountId() {
+        return tinggServiceCode;
+    }
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;

@@ -36,6 +36,7 @@ public class SecurityConfig {
                                 "/error"
                         ).permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                "/uploads/**",
                                 "/api/races",
                                 "/api/races/*",
                                 "/api/races/*/leaderboard",

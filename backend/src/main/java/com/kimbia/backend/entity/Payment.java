@@ -58,5 +58,25 @@ public class Payment {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    @com.fasterxml.jackson.annotation.JsonProperty("runner_name")
+    public String getRunnerName() {
+        return user != null ? user.getName() : null;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonProperty("runner_phone")
+    public String getRunnerPhone() {
+        return destinationAccount != null ? destinationAccount : (user != null ? user.getMobileNumber() : null);
+    }
+
+    @com.fasterxml.jackson.annotation.JsonProperty("race_name")
+    public String getRaceName() {
+        return (registration != null && registration.getRace() != null) ? registration.getRace().getName() : null;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonProperty("race_id")
+    public Integer getRaceId() {
+        return (registration != null && registration.getRace() != null) ? registration.getRace().getId() : null;
+    }
 }
 

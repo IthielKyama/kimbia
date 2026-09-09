@@ -4,6 +4,23 @@
         "name": "Kimbia API",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:8081",
+            "type": "string"
+        },
+        {
+            "key": "token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "admin_token",
+            "value": "",
+            "type": "string"
+        }
+    ],
     "item": [
         {
             "name": "Auth",
@@ -38,7 +55,7 @@
                     }
                 },
                 {
-                    "name": "Login",
+                    "name": "Register Race Organizer (Admin)",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -49,7 +66,99 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"email\": \"jane.doe@example.com\",\n  \"password\": \"securepassword123\"\n}"
+                            "raw": "{\n  \"name\": \"Jane Organizer\",\n  \"email\": \"organizer@example.com\",\n  \"password\": \"securepassword123\",\n  \"role\": \"RACE_ADMIN\",\n  \"mobileNumber\": \"+254711223344\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:8081/api/auth/register",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8081",
+                            "path": [
+                                "api",
+                                "auth",
+                                "register"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Login (Organizer or Runner)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    if (jsonData.token) {",
+                                    "        pm.collectionVariables.set('token', jsonData.token);",
+                                    "        console.log('Saved token to collection variable: token');",
+                                    "    }",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"organizer@kimbia.com\",\n  \"password\": \"password123\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:8081/api/auth/login",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8081",
+                            "path": [
+                                "api",
+                                "auth",
+                                "login"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Login as Super Admin",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    if (jsonData.token) {",
+                                    "        pm.collectionVariables.set('admin_token', jsonData.token);",
+                                    "        console.log('Saved admin_token to collection variable: admin_token');",
+                                    "    }",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"superadmin@kimbia.com\",\n  \"password\": \"password123\"\n}"
                         },
                         "url": {
                             "raw": "http://localhost:8081/api/auth/login",
@@ -72,7 +181,7 @@
             "name": "Races",
             "item": [
                 {
-                    "name": "List Available Races",
+                    "name": "List Available Races (Public)",
                     "request": {
                         "method": "GET",
                         "header": [],
@@ -86,6 +195,150 @@
                             "path": [
                                 "api",
                                 "races"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Specific Race Details",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8081/api/races/1",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8081",
+                            "path": [
+                                "api",
+                                "races",
+                                "1"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Create Race Draft (Admin)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Nairobi Marathon Virtual 5K\",\n  \"distance\": \"5K\",\n  \"race_date\": \"2026-10-15T08:00:00\",\n  \"fee\": 500.00,\n  \"submission_deadline\": \"2026-10-16T18:00:00\",\n  \"bib_template_url\": \"https://images.unsplash.com/photo-1551698618-1dfe5d97d256?auto=format&fit=crop&w=800&q=80\",\n  \"description\": \"Annual virtual marathon 5K challenge\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:8081/api/races",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8081",
+                            "path": [
+                                "api",
+                                "races"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "List Organizer's Races (Admin)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:8081/api/admin/races",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8081",
+                            "path": [
+                                "api",
+                                "admin",
+                                "races"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Edit Race Draft (Admin)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Nairobi Marathon Virtual 5K (Updated Edition)\",\n  \"fee\": 600.00,\n  \"distance\": \"5.0 KM\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:8081/api/races/1",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8081",
+                            "path": [
+                                "api",
+                                "races",
+                                "1"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Publish or Close Race Status (Admin)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"status\": \"PUBLISHED\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:8081/api/races/1/status",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8081",
+                            "path": [
+                                "api",
+                                "races",
+                                "1",
+                                "status"
                             ]
                         }
                     }
@@ -351,16 +604,97 @@
                     }
                 },
                 {
-                    "name": "List Award Payouts",
+                    "name": "List Award Payouts (Organizer or Super Admin)",
                     "request": {
                         "method": "GET",
-                        "header": [],
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
                         "url": {
                             "raw": "http://localhost:8081/api/awards",
                             "protocol": "http",
                             "host": ["localhost"],
                             "port": "8081",
                             "path": ["api", "awards"]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Super Admin",
+            "item": [
+                {
+                    "name": "List Pending Organizers",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:8081/api/admin/organizers?status=PENDING_VETTING",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "8081",
+                            "path": ["api", "admin", "organizers"],
+                            "query": [
+                                {
+                                    "key": "status",
+                                    "value": "PENDING_VETTING"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "List All Organizers",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:8081/api/admin/organizers",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "8081",
+                            "path": ["api", "admin", "organizers"]
+                        }
+                    }
+                },
+                {
+                    "name": "Approve Organizer",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"tingg_service_code\": \"SRV-TINGG-KMB-101\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:8081/api/admin/organizers/11/approve",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "8081",
+                            "path": ["api", "admin", "organizers", "11", "approve"]
                         }
                     }
                 }

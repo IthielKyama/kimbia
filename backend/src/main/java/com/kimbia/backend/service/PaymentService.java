@@ -15,6 +15,7 @@ import com.kimbia.backend.entity.User;
 import com.kimbia.backend.enums.AwardType;
 import com.kimbia.backend.enums.ModerationStatus;
 import com.kimbia.backend.enums.PaymentStatus;
+import com.kimbia.backend.enums.Role;
 import com.kimbia.backend.enums.TransactionType;
 import com.kimbia.backend.repository.PaymentRepository;
 import com.kimbia.backend.repository.RaceRepository;
@@ -188,6 +189,16 @@ public class PaymentService {
         Registration registration = registrationRepository.findById(request.getRegistrationId())
                 .orElseThrow(() -> new IllegalArgumentException("Registration not found for ID: " + request.getRegistrationId()));
 
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+            User currentUser = userRepository.findByEmail(auth.getName()).orElse(null);
+            if (currentUser != null && currentUser.getRole() == Role.RACE_ADMIN) {
+                Race race = registration.getRace();
+                if (race != null && (race.getOrganizer() == null || !race.getOrganizer().getId().equals(currentUser.getId()))) {
+                    throw new SecurityException("Cannot disburse awards for a race you do not organize");
+                }
+            }
+        }
+
         User user = null;
         if (request.getUserId() != null) {
             user = userRepository.findById(request.getUserId()).orElse(null);
@@ -297,8 +308,60 @@ public class PaymentService {
         return paymentRepository.save(payment);
     }
 
+    private User getAuthenticatedUser(Authentication auth) {
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+            throw new SecurityException("Authentication is required to view award payments");
+        }
+        return userRepository.findByEmail(auth.getName())
+                .orElseThrow(() -> new SecurityException("User not found: " + auth.getName()));
+    }
+
+    public List<Payment> getAwardPayments(Integer raceId, AwardType awardType, Authentication auth) {
+        User currentUser = getAuthenticatedUser(auth);
+
+        if (currentUser.getRole() == Role.SUPER_ADMIN) {
+            return getAwardPaymentsForSuperAdmin(raceId, awardType);
+        } else if (currentUser.getRole() == Role.RACE_ADMIN) {
+            return getAwardPaymentsForOrganizer(currentUser.getId(), raceId, awardType);
+        } else {
+            throw new SecurityException("Access denied: only race admins or super admins can view awards");
+        }
+    }
+
+    public List<Payment> getAwardPaymentsForSuperAdmin(Integer raceId, AwardType awardType) {
+        if (raceId != null && awardType != null) {
+            return paymentRepository.findByTransactionTypeAndRaceIdAndAwardType(TransactionType.AWARD, raceId, awardType);
+        } else if (raceId != null) {
+            return paymentRepository.findByTransactionTypeAndRaceId(TransactionType.AWARD, raceId);
+        } else if (awardType != null) {
+            return paymentRepository.findByTransactionTypeAndAwardType(TransactionType.AWARD, awardType);
+        } else {
+            return paymentRepository.findByTransactionTypeOrderByIdDesc(TransactionType.AWARD);
+        }
+    }
+
+    public List<Payment> getAwardPaymentsForOrganizer(Integer organizerId, Integer raceId, AwardType awardType) {
+        if (raceId != null && awardType != null) {
+            return paymentRepository.findByTransactionTypeAndOrganizerIdAndRaceIdAndAwardType(TransactionType.AWARD, organizerId, raceId, awardType);
+        } else if (raceId != null) {
+            return paymentRepository.findByTransactionTypeAndOrganizerIdAndRaceId(TransactionType.AWARD, organizerId, raceId);
+        } else if (awardType != null) {
+            return paymentRepository.findByTransactionTypeAndOrganizerIdAndAwardType(TransactionType.AWARD, organizerId, awardType);
+        } else {
+            return paymentRepository.findByTransactionTypeAndOrganizerId(TransactionType.AWARD, organizerId);
+        }
+    }
+
     public List<Payment> getAwardPayments() {
-        return paymentRepository.findByTransactionType(TransactionType.AWARD);
+        return getAwardPaymentsForSuperAdmin(null, null);
+    }
+
+    public List<Payment> getAwardPaymentsByRace(Integer raceId) {
+        return getAwardPaymentsForSuperAdmin(raceId, null);
+    }
+
+    public List<Payment> getAwardPayments(Integer raceId, AwardType awardType) {
+        return getAwardPaymentsForSuperAdmin(raceId, awardType);
     }
 }
 

@@ -9,6 +9,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import { Select } from '../../components/Select';
 import { NumberInput } from '../../components/NumberInput';
+import { Tooltip } from '../../components/Tooltip';
 import apiClient from '../../services/apiClient';
 
 interface RaceResultItem {
@@ -306,26 +307,28 @@ export function Leaderboard() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         {isPendingResult ? (
                           <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => moderateMutation.mutate({ resultId: runner.id, status: 'APPROVED' })}
-                              disabled={moderateMutation.isPending}
-                              className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-green-600/20 text-green-400 border border-green-500/30 hover:bg-green-600/30 transition-colors"
-                              title="Approve Result"
-                            >
-                              <CheckCircle size={14} className="mr-1" />
-                              Approve
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => moderateMutation.mutate({ resultId: runner.id, status: 'REJECTED' })}
-                              disabled={moderateMutation.isPending}
-                              className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-red-600/20 text-red-400 border border-red-500/30 hover:bg-red-600/30 transition-colors"
-                              title="Reject Result"
-                            >
-                              <XCircle size={14} className="mr-1" />
-                              Reject
-                            </button>
+                            <Tooltip content="Approve Result">
+                              <button
+                                type="button"
+                                onClick={() => moderateMutation.mutate({ resultId: runner.id, status: 'APPROVED' })}
+                                disabled={moderateMutation.isPending}
+                                className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-green-600/20 text-green-400 border border-green-500/30 hover:bg-green-600/30 transition-colors cursor-pointer"
+                              >
+                                <CheckCircle size={14} className="mr-1" />
+                                Approve
+                              </button>
+                            </Tooltip>
+                            <Tooltip content="Reject Result">
+                              <button
+                                type="button"
+                                onClick={() => moderateMutation.mutate({ resultId: runner.id, status: 'REJECTED' })}
+                                disabled={moderateMutation.isPending}
+                                className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-red-600/20 text-red-400 border border-red-500/30 hover:bg-red-600/30 transition-colors cursor-pointer"
+                              >
+                                <XCircle size={14} className="mr-1" />
+                                Reject
+                              </button>
+                            </Tooltip>
                           </div>
                         ) : (
                           <span className="text-xs text-gray-500">
@@ -336,19 +339,20 @@ export function Leaderboard() {
 
                       {/* Award Button */}
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button
-                          type="button"
-                          onClick={() => openAwardModal(runner)}
-                          disabled={!isApproved || isPending}
-                          className={`flex items-center font-bold px-3 py-1.5 rounded-lg border transition-colors ${
-                            isApproved && !isPending
-                              ? 'text-primary bg-primary/10 border-primary/20 hover:bg-primary/20 cursor-pointer'
-                              : 'text-gray-500 bg-gray-800/40 border-gray-800 cursor-not-allowed opacity-50'
-                          }`}
-                          title={!isApproved ? 'Result must be approved to issue awards' : 'Issue Tingg Award Payout'}
-                        >
-                          <Gift size={15} className="mr-1.5" /> Award
-                        </button>
+                        <Tooltip content={!isApproved ? 'Result must be approved to issue awards' : (isPending ? 'Your account is pending KYC approval' : 'Issue Tingg Award Payout')}>
+                          <button
+                            type="button"
+                            onClick={() => openAwardModal(runner)}
+                            disabled={!isApproved || isPending}
+                            className={`flex items-center font-bold px-3 py-1.5 rounded-lg border transition-colors ${
+                              isApproved && !isPending
+                                ? 'text-primary bg-primary/10 border-primary/20 hover:bg-primary/20 cursor-pointer'
+                                : 'text-gray-500 bg-gray-800/40 border-gray-800 cursor-not-allowed opacity-50'
+                            }`}
+                          >
+                            <Gift size={15} className="mr-1.5" /> Award
+                          </button>
+                        </Tooltip>
                       </td>
                     </tr>
                   );

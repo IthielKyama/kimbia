@@ -1,5 +1,5 @@
 import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, RefreshControl } from 'react-native';
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
@@ -11,21 +11,49 @@ import apiClient from '../services/apiClient';
 type MyEventsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'MyEvents'>;
 
 export default function MyEventsScreen({ navigation }: { navigation: MyEventsScreenNavigationProp }) {
+  const [filterTab, setFilterTab] = useState<'All' | 'Paid' | 'Pending'>('All');
+
   const { data: registrations, isLoading, error, refetch, isRefetching } = useQuery({
     queryKey: ['my-registrations'],
     queryFn: async () => {
-      const response = await apiClient.get('/api/registrations/my-events');
-      return response.data;
+      try {
+        const response = await apiClient.get('/api/users/me/registrations');
+        return response.data;
+      } catch {
+        const response = await apiClient.get('/api/registrations/my-events');
+        return response.data;
+      }
     },
   });
+
+  const counts = useMemo(() => {
+    if (!Array.isArray(registrations)) return { all: 0, paid: 0, pending: 0 };
+    const paid = registrations.filter((r: any) => r.paymentStatus === 'COMPLETED').length;
+    return {
+      all: registrations.length,
+      paid,
+      pending: registrations.length - paid,
+    };
+  }, [registrations]);
+
+  const filteredRegistrations = useMemo(() => {
+    if (!Array.isArray(registrations)) return [];
+    if (filterTab === 'Paid') {
+      return registrations.filter((r: any) => r.paymentStatus === 'COMPLETED');
+    }
+    if (filterTab === 'Pending') {
+      return registrations.filter((r: any) => r.paymentStatus !== 'COMPLETED');
+    }
+    return registrations;
+  }, [registrations, filterTab]);
 
   return (
     <SafeAreaView className="flex-1 bg-background">
       <StatusBar style="light" />
       
       {/* Header */}
-      <View className="flex-row items-center justify-between px-5 py-3 border-b border-[#243249]">
-        <Text className="text-white text-xl font-bold">My Events</Text>
+      <View className="flex-row items-center justify-center px-5 py-3">
+        <Text className="text-white text-lg font-bold text-center">MY EVENTS</Text>
       </View>
 
       <ScrollView 
@@ -66,8 +94,72 @@ export default function MyEventsScreen({ navigation }: { navigation: MyEventsScr
             </TouchableOpacity>
           </View>
         ) : (
-          registrations?.map((reg: any) => {
-            const race = reg.race;
+          <>
+            {/* Status Filter Tabs */}
+            <View className="flex-row gap-2 mb-4">
+              {(['All', 'Paid', 'Pending'] as const).map((tab) => {
+                const isActive = filterTab === tab;
+                const count = tab === 'All' ? counts.all : tab === 'Paid' ? counts.paid : counts.pending;
+                return (
+                  <TouchableOpacity
+                    key={tab}
+                    onPress={() => setFilterTab(tab)}
+                    className={`px-4 py-2 rounded-xl flex-row items-center gap-1.5 ${
+                      isActive ? 'bg-primary' : 'bg-surface border border-[#243249]'
+                    }`}
+                  >
+                    <Text className={`font-bold text-xs ${isActive ? 'text-white' : 'text-[#9CA3AF]'}`}>
+                      {tab}
+                    </Text>
+                    {count > 0 && (
+                      <View
+                        className={`px-1.5 py-0.5 rounded-full ${
+                          isActive ? 'bg-black/25' : 'bg-[#1E2A3E]'
+                        }`}
+                      >
+                        <Text
+                          className={`text-[10px] font-bold ${
+                            isActive ? 'text-white' : 'text-[#9CA3AF]'
+                          }`}
+                        >
+                          {count}
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Section Header */}
+            <View className="flex-row items-center justify-between mb-4 mt-1">
+              <Text className="text-placeholder font-semibold text-xs uppercase tracking-wider">
+                YOUR REGISTERED RACES
+              </Text>
+              <Text className="text-placeholder text-xs font-medium">
+                {filteredRegistrations.length} {filteredRegistrations.length === 1 ? 'event' : 'events'}
+              </Text>
+            </View>
+
+            {filteredRegistrations.length === 0 ? (
+              <View className="mt-14 items-center">
+                <View className="w-14 h-14 rounded-full bg-surface items-center justify-center mb-3">
+                  <Feather name="filter" size={22} color="#9CA3AF" />
+                </View>
+                <Text className="text-white text-base font-bold mb-1">No {filterTab.toLowerCase()} events</Text>
+                <Text className="text-placeholder text-xs text-center px-4">
+                  You don't have any race registrations marked as {filterTab.toLowerCase()}.
+                </Text>
+                <TouchableOpacity 
+                  className="mt-4 px-4 py-2 bg-surface rounded-xl border border-[#243249]"
+                  onPress={() => setFilterTab('All')}
+                >
+                  <Text className="text-primary font-bold text-xs">View All Events</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              filteredRegistrations.map((reg: any) => {
+                const race = reg.race;
             const isCompleted = reg.paymentStatus === 'COMPLETED';
             const hasSubmitted = Boolean(reg.has_submitted_time || reg.finishing_time || reg.hasSubmittedTime);
             const moderationStatus = reg.result_moderation_status || reg.resultModerationStatus || 'PENDING';
@@ -185,6 +277,8 @@ export default function MyEventsScreen({ navigation }: { navigation: MyEventsScr
             );
           })
         )}
+      </>
+    )}
       </ScrollView>
 
       {/* Bottom Nav */}

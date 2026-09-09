@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Calendar, MapPin, Tag, Users as UsersIcon, RefreshCw, AlertCircle } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { Plus, Calendar, MapPin, Tag, Users as UsersIcon, RefreshCw, AlertCircle, Pencil } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import apiClient from '../../services/apiClient';
+import { Tooltip } from '../../components/Tooltip';
 
 interface Race {
   id: number;
@@ -14,6 +16,9 @@ interface Race {
 }
 
 function RaceRow({ race, isPending }: { race: Race; isPending: boolean }) {
+  const queryClient = useQueryClient();
+  const [rowError, setRowError] = useState<string>('');
+
   const { data: registrations = [] } = useQuery({
     queryKey: ['race-registrations', race.id],
     queryFn: async () => {
@@ -25,6 +30,25 @@ function RaceRow({ race, isPending }: { race: Race; isPending: boolean }) {
       }
     },
     enabled: !!race.id,
+  });
+
+  const statusMutation = useMutation({
+    mutationFn: async (targetStatus: 'PUBLISHED' | 'CLOSED' | 'DRAFT') => {
+      setRowError('');
+      const res = await apiClient.put(`/api/races/${race.id}/status`, { status: targetStatus });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['races'] });
+    },
+    onError: (err: any) => {
+      const errMsg =
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        err.message ||
+        'Failed to update race status';
+      setRowError(errMsg);
+    },
   });
 
   const getStatusColor = (status: string) => {
@@ -50,105 +74,185 @@ function RaceRow({ race, isPending }: { race: Race; isPending: boolean }) {
   };
 
   return (
-    <tr className="hover:bg-gray-800/50 transition-colors">
-      <td className="px-6 py-4 whitespace-nowrap">
-        <Link to={`/races/${race.id}`} className="text-sm font-bold text-white hover:text-primary transition-colors font-outfit">
-          {race.name}
-        </Link>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="flex items-center text-sm text-placeholder bg-background px-3 py-1.5 rounded-lg w-fit border border-gray-800">
-          <Calendar className="flex-shrink-0 mr-2 h-4 w-4 text-primary" />
-          {formatDate(race.raceDate)}
-        </div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="flex items-center text-sm text-placeholder bg-background px-3 py-1.5 rounded-lg w-fit border border-gray-800">
-          <MapPin className="flex-shrink-0 mr-2 h-4 w-4 text-primary" />
-          {race.distance}
-        </div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="flex items-center text-sm text-placeholder bg-background px-3 py-1.5 rounded-lg w-fit border border-gray-800">
-          <Tag className="flex-shrink-0 mr-2 h-4 w-4 text-primary" />
-          KES {Number(race.fee).toLocaleString()}
-        </div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="flex items-center text-sm text-placeholder bg-background px-3 py-1.5 rounded-lg w-fit border border-gray-800">
-          <UsersIcon className="flex-shrink-0 mr-2 h-4 w-4 text-primary" />
-          <span className="font-bold text-white mr-1">{registrations.length}</span> runners
-        </div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full border ${getStatusColor(race.status)}`}>
-          {race.status}
-        </span>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        {race.status === 'DRAFT' && (
-          <button
-            disabled={isPending}
-            className={`inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-bold rounded-xl text-white transition-all
-              ${isPending ? 'bg-gray-700 cursor-not-allowed opacity-50' : 'bg-green-600 hover:bg-green-500'}
-            `}
-            title={isPending ? "You must be approved to publish races" : "Publish this race"}
+    <>
+      <tr className="hover:bg-gray-800/50 transition-colors">
+        <td className="px-6 py-4 whitespace-nowrap">
+          <Link
+            to={race.status === 'DRAFT' ? `/races/${race.id}/edit` : `/races/${race.id}/leaderboard`}
+            className="text-sm font-bold text-white hover:text-primary transition-colors font-outfit"
           >
-            Publish
-          </button>
-        )}
-        {race.status === 'PUBLISHED' && (
-          <button
+            {race.name}
+          </Link>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <div className="flex items-center text-sm text-placeholder bg-background px-3 py-1.5 rounded-lg w-fit border border-gray-800">
+            <Calendar className="flex-shrink-0 mr-2 h-4 w-4 text-primary" />
+            {formatDate(race.raceDate)}
+          </div>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <div className="flex items-center text-sm text-placeholder bg-background px-3 py-1.5 rounded-lg w-fit border border-gray-800">
+            <MapPin className="flex-shrink-0 mr-2 h-4 w-4 text-primary" />
+            {race.distance}
+          </div>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <div className="flex items-center text-sm text-placeholder bg-background px-3 py-1.5 rounded-lg w-fit border border-gray-800">
+            <Tag className="flex-shrink-0 mr-2 h-4 w-4 text-primary" />
+            KES {Number(race.fee).toLocaleString()}
+          </div>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <div className="flex items-center text-sm text-placeholder bg-background px-3 py-1.5 rounded-lg w-fit border border-gray-800">
+            <UsersIcon className="flex-shrink-0 mr-2 h-4 w-4 text-primary" />
+            <span className="font-bold text-white mr-1">{registrations.length}</span> runners
+          </div>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <span className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full border ${getStatusColor(race.status)}`}>
+            {race.status}
+          </span>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          {race.status === 'DRAFT' && (
+            <div className="flex items-center gap-2">
+              <Link
+                to={`/races/${race.id}/edit`}
+                className="inline-flex items-center px-3 py-2 border border-gray-700 shadow-sm text-sm font-bold rounded-xl text-gray-300 bg-background hover:bg-gray-800 hover:text-white transition-colors cursor-pointer"
+              >
+                <Pencil size={14} className="mr-1.5 text-gray-400" /> Edit
+              </Link>
+              <Tooltip content={isPending ? "You must be approved by Super Admin to publish races" : "Publish this race"}>
+                <button
+                  onClick={() => statusMutation.mutate('PUBLISHED')}
+                  disabled={isPending || statusMutation.isPending}
+                  className={`inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-bold rounded-xl text-white transition-all
+                    ${isPending || statusMutation.isPending
+                      ? 'bg-gray-700 cursor-not-allowed opacity-50'
+                      : 'bg-green-600 hover:bg-green-500 cursor-pointer'}
+                  `}
+                >
+                  {statusMutation.isPending ? 'Publishing...' : 'Publish'}
+                </button>
+              </Tooltip>
+            </div>
+          )}
+          {race.status === 'PUBLISHED' && (
+            <Tooltip content="Close this race">
+              <button
+                type="button"
+                onClick={() => statusMutation.mutate('CLOSED')}
+                disabled={statusMutation.isPending}
+                className="inline-flex items-center px-4 py-2 border border-gray-700 shadow-sm text-sm font-bold rounded-xl text-gray-300 bg-background hover:bg-gray-800 hover:text-white transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {statusMutation.isPending ? 'Updating...' : 'Close Race'}
+              </button>
+            </Tooltip>
+          )}
+          {race.status === 'CLOSED' && (
+            <Tooltip content="Re-open race as Draft">
+              <button
+                onClick={() => statusMutation.mutate('DRAFT')}
+                disabled={statusMutation.isPending}
+                className="inline-flex items-center px-3 py-1.5 border border-gray-700 shadow-sm text-xs font-semibold rounded-xl text-gray-400 bg-background hover:bg-gray-800 hover:text-white transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {statusMutation.isPending ? 'Updating...' : 'Re-open Draft'}
+              </button>
+            </Tooltip>
+          )}
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <Link
+            to={`/races/${race.id}/leaderboard`}
             className="inline-flex items-center px-4 py-2 border border-gray-700 shadow-sm text-sm font-bold rounded-xl text-gray-300 bg-background hover:bg-gray-800 hover:text-white transition-colors"
           >
-            Unpublish
-          </button>
-        )}
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <Link
-          to={`/races/${race.id}/leaderboard`}
-          className="inline-flex items-center px-4 py-2 border border-gray-700 shadow-sm text-sm font-bold rounded-xl text-gray-300 bg-background hover:bg-gray-800 hover:text-white transition-colors"
-        >
-          Leaderboard
-        </Link>
-      </td>
-    </tr>
+            Leaderboard
+          </Link>
+        </td>
+      </tr>
+      {rowError && (
+        <tr>
+          <td colSpan={8} className="px-6 py-2 bg-red-500/10 border-b border-red-500/20 text-xs text-red-400">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 font-medium">
+                <AlertCircle size={14} /> {rowError}
+              </span>
+              <button
+                type="button"
+                onClick={() => setRowError('')}
+                className="text-gray-400 hover:text-white text-xs underline ml-4"
+              >
+                Dismiss
+              </button>
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
   );
 }
 
 export function Races() {
   const { role } = useAuth();
   const isPending = role === 'RACE_ADMIN_PENDING';
+  const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const { data: races = [], isLoading, isError, error, refetch } = useQuery<Race[]>({
+  const { data: races = [], isLoading, isError, error, refetch, isFetching } = useQuery<Race[]>({
     queryKey: ['races'],
     queryFn: async () => {
-      const res = await apiClient.get<Race[]>('/api/races');
+      const res = await apiClient.get<Race[]>('/api/admin/races');
       return res.data;
     },
   });
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['races'] }),
+        queryClient.invalidateQueries({ queryKey: ['race-registrations'] }),
+        refetch(),
+      ]);
+    } catch (err) {
+      console.error('Failed to refresh races:', err);
+    } finally {
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 500);
+    }
+  };
+
+  const isSpinning = isRefreshing || isFetching;
+
   return (
     <div className="space-y-6 font-geist">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
           <h1 className="text-2xl font-bold text-white font-outfit">My Races</h1>
-          <button
-            onClick={() => refetch()}
-            className="p-2 text-placeholder hover:text-white rounded-lg hover:bg-surface transition-colors"
-            title="Refresh races"
-          >
-            <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
-          </button>
+          <p className="text-sm text-placeholder mt-1">
+            Manage your organized events, view real-time registrations, and publish races.
+          </p>
         </div>
-        <Link
-          to="/races/new"
-          className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-bold rounded-xl text-white bg-primary hover:opacity-90 focus:outline-none transition-opacity"
-        >
-          <Plus className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
-          Create New Race
-        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isSpinning}
+            className="inline-flex items-center px-4 py-2 border border-gray-700 shadow-sm text-sm font-bold rounded-xl text-gray-300 bg-surface hover:bg-gray-800 transition-colors focus:outline-none cursor-pointer disabled:opacity-50"
+            title="Refresh races and registrations"
+          >
+            <RefreshCw size={16} className={`-ml-1 mr-2 ${isSpinning ? 'animate-spin' : ''}`} />
+            {isSpinning ? 'Refreshing...' : 'Refresh Races'}
+          </button>
+          <Link
+            to="/races/new"
+            className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-bold rounded-xl text-white bg-primary hover:opacity-90 focus:outline-none transition-opacity"
+          >
+            <Plus className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
+            Create New Race
+          </Link>
+        </div>
       </div>
 
       {isError && (

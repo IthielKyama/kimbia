@@ -32,16 +32,21 @@ public class SecurityConfig {
                         .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
                         .requestMatchers(
                                 "/api/auth/**",
-                                "/api/races/**",
                                 "/api/webhooks/**",
-                                "/api/results/**",
-                                "/api/awards/**",
-                                "/api/admin/**",
                                 "/error"
-                        )
-                        .permitAll()
-                        .anyRequest()
-                        .authenticated()
+                        ).permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                "/api/races",
+                                "/api/races/*",
+                                "/api/races/*/leaderboard",
+                                "/api/races/*/results",
+                                "/api/registrations/*/status",
+                                "/api/awards/simulate/**",
+                                "/api/payments/simulate/**"
+                        ).permitAll()
+                        .requestMatchers("/api/admin/organizers/**").hasRole("SUPER_ADMIN")
+                        .requestMatchers("/api/admin/**").hasAnyRole("RACE_ADMIN", "SUPER_ADMIN")
+                        .anyRequest().authenticated()
                 )
                 .sessionManagement(sess -> sess
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)

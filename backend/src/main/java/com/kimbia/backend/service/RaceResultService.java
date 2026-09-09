@@ -2,11 +2,14 @@ package com.kimbia.backend.service;
 
 import com.kimbia.backend.dto.ModerateResultRequest;
 import com.kimbia.backend.dto.SubmitResultRequest;
+import com.kimbia.backend.entity.Race;
 import com.kimbia.backend.entity.RaceResult;
 import com.kimbia.backend.entity.Registration;
 import com.kimbia.backend.entity.User;
 import com.kimbia.backend.enums.ModerationStatus;
 import com.kimbia.backend.enums.PaymentStatus;
+import com.kimbia.backend.enums.Role;
+import com.kimbia.backend.repository.RaceRepository;
 import com.kimbia.backend.repository.RaceResultRepository;
 import com.kimbia.backend.repository.RegistrationRepository;
 import com.kimbia.backend.repository.UserRepository;
@@ -28,6 +31,7 @@ public class RaceResultService {
     private final RaceResultRepository raceResultRepository;
     private final RegistrationRepository registrationRepository;
     private final UserRepository userRepository;
+    private final RaceRepository raceRepository;
 
     @Transactional
     public RaceResult submitResult(SubmitResultRequest request, Authentication auth) {
@@ -66,8 +70,39 @@ public class RaceResultService {
         return raceResultRepository.save(raceResult);
     }
 
+    private User getAuthenticatedUser(Authentication auth) {
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+            throw new SecurityException("Authentication is required");
+        }
+        return userRepository.findByEmail(auth.getName())
+                .orElseThrow(() -> new SecurityException("User not found: " + auth.getName()));
+    }
+
+    public List<RaceResult> getResultsForRaceAdmin(Integer raceId, ModerationStatus status, Authentication auth) {
+        User currentUser = getAuthenticatedUser(auth);
+
+        Race race = raceRepository.findById(raceId)
+                .orElseThrow(() -> new IllegalArgumentException("Race not found with id: " + raceId));
+
+        if (currentUser.getRole() != Role.SUPER_ADMIN) {
+            if (currentUser.getRole() != Role.RACE_ADMIN) {
+                throw new SecurityException("Access denied: Race Admin or Super Admin role required");
+            }
+            if (race.getOrganizer() == null || !race.getOrganizer().getId().equals(currentUser.getId())) {
+                throw new SecurityException("Access denied: You can only view moderation results for races you organize");
+            }
+        }
+
+        if (status != null) {
+            return raceResultRepository.findByRaceIdAndModerationStatus(raceId, status);
+        }
+        return raceResultRepository.findByRaceId(raceId);
+    }
+
     @Transactional
     public RaceResult moderateResult(Integer resultId, ModerateResultRequest request, Authentication auth) {
+        User currentUser = getAuthenticatedUser(auth);
+
         if (request.getModerationStatus() == null) {
             throw new IllegalArgumentException("Moderation status is required");
         }
@@ -75,11 +110,19 @@ public class RaceResultService {
         RaceResult result = raceResultRepository.findById(resultId)
                 .orElseThrow(() -> new IllegalArgumentException("Race result not found for ID: " + resultId));
 
-        result.setModerationStatus(request.getModerationStatus());
+        Race race = result.getRegistration() != null ? result.getRegistration().getRace() : null;
 
-        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
-            userRepository.findByEmail(auth.getName()).ifPresent(result::setModeratedBy);
+        if (currentUser.getRole() != Role.SUPER_ADMIN) {
+            if (currentUser.getRole() != Role.RACE_ADMIN) {
+                throw new SecurityException("Access denied: Race Admin or Super Admin role required");
+            }
+            if (race == null || race.getOrganizer() == null || !race.getOrganizer().getId().equals(currentUser.getId())) {
+                throw new SecurityException("Access denied: You can only moderate results for races you organize");
+            }
         }
+
+        result.setModerationStatus(request.getModerationStatus());
+        result.setModeratedBy(currentUser);
 
         return raceResultRepository.save(result);
     }

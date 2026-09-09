@@ -26,12 +26,17 @@ public class AdminResultController {
     public ResponseEntity<?> getResultsForRace(
             @PathVariable Integer raceId,
             @RequestParam(name = "moderation_status", required = false) ModerationStatus moderationStatus,
-            @RequestParam(name = "status", required = false) ModerationStatus statusFallback
+            @RequestParam(name = "status", required = false) ModerationStatus statusFallback,
+            Authentication auth
     ) {
         try {
             ModerationStatus status = moderationStatus != null ? moderationStatus : statusFallback;
-            List<RaceResult> results = raceResultService.getResultsForRace(raceId, status);
+            List<RaceResult> results = raceResultService.getResultsForRaceAdmin(raceId, status, auth);
             return ResponseEntity.ok(results);
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             log.error("Error fetching results for race: ", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -48,6 +53,8 @@ public class AdminResultController {
         try {
             RaceResult updated = raceResultService.moderateResult(resultId, request, auth);
             return ResponseEntity.ok(updated);
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {

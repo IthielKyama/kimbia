@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingVi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
+import * as ImagePicker from 'expo-image-picker';
 import apiClient from '../services/apiClient';
 import CustomAlert from '../components/CustomAlert';
 import { useQueryClient } from '@tanstack/react-query';
@@ -35,6 +36,9 @@ export default function SubmitTimeScreen({ navigation, route }: any) {
   const [seconds, setSeconds] = useState('12');
 
   const [selectedProofUrl, setSelectedProofUrl] = useState(PROOF_PRESETS[0].url);
+  const [customProofFileName, setCustomProofFileName] = useState<string | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
   const [registrationId, setRegistrationId] = useState<number | null>(route?.params?.registrationId || null);
   const [raceName, setRaceName] = useState<string>(route?.params?.raceName || 'Rift Valley 10K Challenge');
   const [distance, setDistance] = useState<string>(route?.params?.distance || '10.00 KM');
@@ -52,7 +56,12 @@ export default function SubmitTimeScreen({ navigation, route }: any) {
       const fetchActiveRegistration = async () => {
         setIsLoadingReg(true);
         try {
-          const res = await apiClient.get('/api/registrations/my-events');
+          let res;
+          try {
+            res = await apiClient.get('/api/users/me/registrations');
+          } catch {
+            res = await apiClient.get('/api/registrations/my-events');
+          }
           if (Array.isArray(res.data) && res.data.length > 0) {
             const paid = res.data.find((r: any) => r.paymentStatus === 'COMPLETED') || res.data[0];
             setRegistrationId(paid.id);
@@ -68,6 +77,69 @@ export default function SubmitTimeScreen({ navigation, route }: any) {
       fetchActiveRegistration();
     }
   }, [registrationId]);
+
+  const handlePickImage = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        setAlertConfig({
+          visible: true,
+          title: 'Permission Required',
+          message: 'Permission to access your photos is required to upload proof.',
+        });
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        return;
+      }
+
+      const asset = result.assets[0];
+      setIsUploadingPhoto(true);
+
+      const filename = asset.fileName || asset.uri.split('/').pop() || 'proof.jpg';
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : (asset.mimeType || 'image/jpeg');
+
+      const formData = new FormData();
+      formData.append('file', {
+        uri: asset.uri,
+        name: filename,
+        type: type,
+      } as any);
+
+      const res = await apiClient.post('/api/uploads', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (res.data?.file_url) {
+        setSelectedProofUrl(res.data.file_url);
+        setCustomProofFileName(filename);
+      }
+    } catch (err: any) {
+      console.error('Upload proof error:', err);
+      const errMsg =
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to upload photo proof.';
+      setAlertConfig({
+        visible: true,
+        title: 'Upload Failed',
+        message: errMsg,
+      });
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
 
   const formatTimeString = () => {
     const h = (hours.trim() || '0').padStart(2, '0');
@@ -242,17 +314,57 @@ export default function SubmitTimeScreen({ navigation, route }: any) {
               <Text className="text-white font-bold text-[15px]">Sports Watch / Photo Proof</Text>
             </View>
             <Text className="text-placeholder text-xs">
-              Select or preview your sports watch or running app verification screenshot.
+              Upload your sports watch or running app screenshot, or select a preset for quick testing.
             </Text>
 
+            {/* Custom Upload Button */}
+            <TouchableOpacity
+              onPress={handlePickImage}
+              disabled={isUploadingPhoto}
+              className={`flex-row items-center justify-center gap-2 p-3.5 rounded-xl border border-dashed ${
+                customProofFileName
+                  ? 'bg-primary/15 border-primary'
+                  : 'bg-[#1E2A3E] border-primary/50'
+              }`}
+            >
+              {isUploadingPhoto ? (
+                <>
+                  <ActivityIndicator color="#FF4C29" size="small" />
+                  <Text className="text-primary font-bold text-xs">Uploading Proof Screenshot...</Text>
+                </>
+              ) : customProofFileName ? (
+                <>
+                  <Feather name="check-circle" size={16} color="#CCFF00" />
+                  <Text className="text-[#CCFF00] font-bold text-xs" numberOfLines={1}>
+                    Uploaded: {customProofFileName}
+                  </Text>
+                  <Text className="text-placeholder text-[10px] underline ml-1">Change</Text>
+                </>
+              ) : (
+                <>
+                  <Feather name="upload" size={16} color="#FF4C29" />
+                  <Text className="text-primary font-bold text-xs">Upload Screenshot from Device</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <View className="flex-row items-center gap-2 my-1">
+              <View className="flex-1 h-[1px] bg-[#243249]" />
+              <Text className="text-placeholder text-[10px] uppercase font-semibold">Or Choose A Preset</Text>
+              <View className="flex-1 h-[1px] bg-[#243249]" />
+            </View>
+
             {/* Presets Row */}
-            <View className="flex-col gap-2 mt-1">
+            <View className="flex-col gap-2">
               {PROOF_PRESETS.map((preset) => {
-                const isSelected = selectedProofUrl === preset.url;
+                const isSelected = selectedProofUrl === preset.url && !customProofFileName;
                 return (
                   <TouchableOpacity
                     key={preset.id}
-                    onPress={() => setSelectedProofUrl(preset.url)}
+                    onPress={() => {
+                      setSelectedProofUrl(preset.url);
+                      setCustomProofFileName(null);
+                    }}
                     className={`flex-row items-center justify-between p-2.5 rounded-xl border ${
                       isSelected
                         ? 'bg-primary/15 border-primary'
@@ -289,7 +401,9 @@ export default function SubmitTimeScreen({ navigation, route }: any) {
                 />
                 <View className="absolute bottom-2 left-2 bg-black/70 px-2 py-1 rounded-md flex-row items-center gap-1">
                   <Feather name="check" size={12} color="#CCFF00" />
-                  <Text className="text-[#CCFF00] font-bold text-[10px]">Proof Attached</Text>
+                  <Text className="text-[#CCFF00] font-bold text-[10px]">
+                    {customProofFileName ? 'Custom Proof Attached' : 'Preset Proof Attached'}
+                  </Text>
                 </View>
               </View>
             )}

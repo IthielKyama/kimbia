@@ -3,8 +3,23 @@ import { View, Text, ScrollView, TouchableOpacity, TextInput } from 'react-nativ
 import { Feather } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import apiClient from '../services/apiClient';
 
 export default function SettingsScreen({ navigation }: any) {
+  const handleLogout = async () => {
+    try {
+      const refreshToken = await AsyncStorage.getItem('refreshToken');
+      if (refreshToken) {
+        apiClient.post('/api/auth/logout', { refreshToken }).catch(() => {});
+      }
+    } finally {
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('refreshToken');
+      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+    }
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-background">
       <StatusBar style="light" />
@@ -65,7 +80,7 @@ export default function SettingsScreen({ navigation }: any) {
 
         <TouchableOpacity 
           className="w-full border-2 border-primary py-4 rounded-xl flex-row justify-center items-center gap-2 mb-8"
-          onPress={() => navigation.reset({ index: 0, routes: [{ name: 'Login' }] })}
+          onPress={handleLogout}
         >
           <Feather name="log-out" size={20} color="#FF4C29" />
           <Text className="text-primary font-bold text-base uppercase">Log Out</Text>

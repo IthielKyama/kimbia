@@ -23,6 +23,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final RefreshTokenService refreshTokenService;
 
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -50,10 +51,12 @@ public class AuthService {
         }
         user.setAuthProvider(AuthProvider.LOCAL);
 
-        userRepository.save(user);
+        user = userRepository.save(user);
 
         String jwtToken = jwtService.generateToken(user);
-        return new AuthResponse(jwtToken, user.getId(), user.getRole());
+        com.kimbia.backend.entity.RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
+
+        return new AuthResponse(jwtToken, jwtToken, refreshToken.getToken(), user.getId(), user.getRole());
     }
 
     public AuthResponse login(AuthRequest request) {
@@ -65,9 +68,37 @@ public class AuthService {
         );
 
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow();
-                
+                .orElseThrow(() -> new IllegalArgumentException("User not found with email: " + request.getEmail()));
+
         String jwtToken = jwtService.generateToken(user);
-        return new AuthResponse(jwtToken, user.getId(), user.getRole());
+        com.kimbia.backend.entity.RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
+
+        return new AuthResponse(jwtToken, jwtToken, refreshToken.getToken(), user.getId(), user.getRole());
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public AuthResponse refreshAccessToken(com.kimbia.backend.dto.RefreshTokenRequest request) {
+        if (request == null || request.getRefreshToken() == null || request.getRefreshToken().trim().isEmpty()) {
+            throw new IllegalArgumentException("Refresh token is required");
+        }
+
+        com.kimbia.backend.entity.RefreshToken token = refreshTokenService.findByToken(request.getRefreshToken().trim())
+                .orElseThrow(() -> new SecurityException("Invalid refresh token. Please sign in again."));
+
+        token = refreshTokenService.verifyExpiration(token);
+
+        // Perform token rotation: invalidate old refresh token, generate new refresh token
+        com.kimbia.backend.entity.RefreshToken rotatedToken = refreshTokenService.rotateRefreshToken(token);
+        User user = rotatedToken.getUser();
+
+        String newAccessToken = jwtService.generateToken(user);
+
+        return new AuthResponse(newAccessToken, newAccessToken, rotatedToken.getToken(), user.getId(), user.getRole());
+    }
+
+    public void logout(com.kimbia.backend.dto.RefreshTokenRequest request) {
+        if (request != null && request.getRefreshToken() != null) {
+            refreshTokenService.revokeToken(request.getRefreshToken());
+        }
     }
 }

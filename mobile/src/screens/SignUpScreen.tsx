@@ -54,8 +54,15 @@ export default function SignUpScreen({ navigation }: { navigation: SignUpScreenN
       return response.data;
     },
     onSuccess: async (data) => {
-      await AsyncStorage.setItem('token', data.token);
-      navigation.navigate('Explore');
+      const activeToken = data.accessToken || data.token;
+      await AsyncStorage.setItem('token', activeToken);
+      if (data.refreshToken) {
+        await AsyncStorage.setItem('refreshToken', data.refreshToken);
+      }
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Explore' }],
+      });
     },
     onError: (error: any) => {
       console.log('Registration Error:', error.response?.data || error.message);

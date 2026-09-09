@@ -63,6 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const userData = res.data;
         if (userData.role === 'RUNNER') {
           localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
           setUser(null);
           setRole('GUEST');
         } else {
@@ -72,6 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
       .catch(() => {
         localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
         setUser(null);
         setRole('GUEST');
       })
@@ -81,17 +83,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string): Promise<{ role: Role }> => {
-    const res = await apiClient.post<{ token: string; userId: number; role: string }>('/api/auth/login', {
+    const res = await apiClient.post<{
+      token: string;
+      accessToken?: string;
+      refreshToken?: string;
+      userId: number;
+      role: string;
+    }>('/api/auth/login', {
       email,
       password,
     });
-    const { token, role: backendRole } = res.data;
+    const { token, accessToken, refreshToken, role: backendRole } = res.data;
 
     if (backendRole === 'RUNNER') {
       throw new Error('Access denied: Runner accounts must use the Kimbia mobile app.');
     }
 
-    localStorage.setItem('token', token);
+    const activeToken = accessToken || token;
+    localStorage.setItem('token', activeToken);
+    if (refreshToken) {
+      localStorage.setItem('refreshToken', refreshToken);
+    }
 
     const userRes = await apiClient.get<User>('/api/users/me');
     const userData = userRes.data;
@@ -103,15 +115,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const register = async (data: RegisterData): Promise<{ role: Role }> => {
-    const res = await apiClient.post<{ token: string; userId: number; role: string }>('/api/auth/register', {
+    const res = await apiClient.post<{
+      token: string;
+      accessToken?: string;
+      refreshToken?: string;
+      userId: number;
+      role: string;
+    }>('/api/auth/register', {
       name: data.name,
       email: data.email,
       password: data.password,
       role: 'RACE_ADMIN',
       mobileNumber: data.mobileNumber || '',
     });
-    const { token } = res.data;
-    localStorage.setItem('token', token);
+    const { token, accessToken, refreshToken } = res.data;
+    const activeToken = accessToken || token;
+    localStorage.setItem('token', activeToken);
+    if (refreshToken) {
+      localStorage.setItem('refreshToken', refreshToken);
+    }
 
     const userRes = await apiClient.get<User>('/api/users/me');
     const userData = userRes.data;
@@ -123,7 +145,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (refreshToken) {
+      apiClient.post('/api/auth/logout', { refreshToken }).catch(() => {});
+    }
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     setUser(null);
     setRole('GUEST');
   };

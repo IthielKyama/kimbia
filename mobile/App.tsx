@@ -52,6 +52,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { createNavigationContainerRef } from '@react-navigation/native';
+import apiClient from './src/services/apiClient';
 export const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 const queryClient = new QueryClient();
@@ -64,11 +65,25 @@ export default function App() {
     const checkAuth = async () => {
       try {
         const token = await AsyncStorage.getItem('token');
-        if (token) {
-          setInitialRoute('Explore');
+        const refreshToken = await AsyncStorage.getItem('refreshToken');
+
+        if (token || refreshToken) {
+          try {
+            // Ping /api/users/me. If the access token is expired, the apiClient
+            // interceptor will automatically trigger silent refresh via /api/auth/refresh
+            await apiClient.get('/api/users/me');
+            setInitialRoute('Explore');
+          } catch (apiError) {
+            // Both access token and refresh token failed/expired
+            await AsyncStorage.removeItem('token');
+            await AsyncStorage.removeItem('refreshToken');
+            setInitialRoute('Login');
+          }
+        } else {
+          setInitialRoute('Login');
         }
       } catch (e) {
-        // ignore
+        setInitialRoute('Login');
       } finally {
         setIsReady(true);
       }

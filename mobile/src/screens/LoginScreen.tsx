@@ -28,7 +28,11 @@ export default function LoginScreen({ navigation }: { navigation: LoginScreenNav
       return response.data;
     },
     onSuccess: async (data) => {
-      await AsyncStorage.setItem('token', data.token);
+      const activeToken = data.accessToken || data.token;
+      await AsyncStorage.setItem('token', activeToken);
+      if (data.refreshToken) {
+        await AsyncStorage.setItem('refreshToken', data.refreshToken);
+      }
       navigation.reset({
         index: 0,
         routes: [{ name: 'Explore' }],

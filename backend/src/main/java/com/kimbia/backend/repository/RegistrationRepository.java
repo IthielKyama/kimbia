@@ -13,6 +13,7 @@ import java.util.Optional;
 @Repository
 public interface RegistrationRepository extends JpaRepository<Registration, Integer> {
     List<Registration> findByRaceId(Integer raceId);
+    List<Registration> findByRaceIdAndPaymentStatus(Integer raceId, com.kimbia.backend.enums.PaymentStatus paymentStatus);
 
     @org.springframework.data.jpa.repository.Query("SELECT r FROM Registration r LEFT JOIN FETCH r.raceResult LEFT JOIN FETCH r.race WHERE r.user.id = :userId")
     List<Registration> findByUserId(@org.springframework.data.repository.query.Param("userId") Integer userId);

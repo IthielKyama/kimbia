@@ -38,9 +38,12 @@ public class AdminRaceController {
     }
 
     @GetMapping("/{raceId}/registrations")
-    public ResponseEntity<?> getRegistrations(@PathVariable Integer raceId, Authentication auth) {
+    public ResponseEntity<?> getRegistrations(
+            @PathVariable Integer raceId,
+            @RequestParam(value = "payment_status", required = false) String paymentStatus,
+            Authentication auth) {
         try {
-            List<Registration> registrations = registrationService.getRegistrationsForAdmin(raceId, auth);
+            List<Registration> registrations = registrationService.getRegistrationsForAdmin(raceId, paymentStatus, auth);
             return ResponseEntity.ok(registrations);
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));

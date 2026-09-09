@@ -39,6 +39,10 @@ public class RegistrationService {
     }
 
     public List<Registration> getRegistrationsForAdmin(Integer raceId, Authentication auth) {
+        return getRegistrationsForAdmin(raceId, null, auth);
+    }
+
+    public List<Registration> getRegistrationsForAdmin(Integer raceId, String paymentStatusStr, Authentication auth) {
         User currentUser = getAuthenticatedUser(auth);
 
         Race race = raceRepository.findById(raceId)
@@ -50,6 +54,17 @@ public class RegistrationService {
             }
             if (race.getOrganizer() == null || !race.getOrganizer().getId().equals(currentUser.getId())) {
                 throw new SecurityException("Access denied: You can only view registrations for races you organize");
+            }
+        }
+
+        if (paymentStatusStr != null && !paymentStatusStr.trim().isEmpty()) {
+            try {
+                com.kimbia.backend.enums.PaymentStatus paymentStatus =
+                        com.kimbia.backend.enums.PaymentStatus.valueOf(paymentStatusStr.trim().toUpperCase());
+                return registrationRepository.findByRaceIdAndPaymentStatus(raceId, paymentStatus);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid payment status: " + paymentStatusStr +
+                        ". Allowed values: PENDING, COMPLETED, FAILED");
             }
         }
 

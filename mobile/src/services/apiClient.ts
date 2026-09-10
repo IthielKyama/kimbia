@@ -1,9 +1,42 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 const getBaseUrl = () => {
-  // Host machine's Mobile Hotspot IP address (192.168.137.1)
-  return 'http://192.168.137.1:8081';
+  // 1. Explicit env variable override
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
+  // 2. Web browser (running in mobile or desktop browser)
+  if (Platform.OS === 'web') {
+    if (typeof window !== 'undefined' && window.location?.hostname) {
+      return `http://${window.location.hostname}:8081`;
+    }
+    return 'http://localhost:8081';
+  }
+
+  // 3. Expo Go / Dev Client (extract host IP from Metro connection)
+  const hostUri =
+    Constants.expoConfig?.hostUri ||
+    (Constants as any).manifest?.debuggerHost ||
+    (Constants as any).manifest2?.extra?.expoGo?.debuggerHost;
+
+  if (hostUri) {
+    const hostIp = hostUri.split(':')[0];
+    if (hostIp) {
+      return `http://${hostIp}:8081`;
+    }
+  }
+
+  // 4. Android Emulator
+  if (Platform.OS === 'android') {
+    return 'http://10.0.2.2:8081';
+  }
+
+  // 5. Fallback LAN IP
+  return 'http://192.168.1.5:8081';
 };
 
 const BASE_URL = getBaseUrl();

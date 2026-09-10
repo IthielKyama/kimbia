@@ -16,6 +16,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 @Service
 @Slf4j
 public class TinggService {
@@ -75,35 +79,83 @@ public class TinggService {
 
     public TinggPayoutResponse initiatePayout(Payment payment, String customServiceCode) {
         String activeServiceCode = (customServiceCode != null && !customServiceCode.isBlank()) ? customServiceCode : serviceCode;
-        TinggPayoutPayload payload = new TinggPayoutPayload();
-        payload.setService_code(activeServiceCode);
-        payload.setClient_id(clientId);
-        payload.setMerchant_transaction_id(payment.getTransactionRef());
-        payload.setAccount_number(payment.getTransactionRef());
-        payload.setCurrency_code("KES");
-        payload.setAmount(payment.getAmount());
-        payload.setMsisdn(payment.getDestinationAccount());
-        payload.setCountry_code("KEN");
-        payload.setCustomer_name(payment.getUser() != null && payment.getUser().getName() != null ? payment.getUser().getName() : "Winner");
-        payload.setCallback_url("https://kimbia.africa/api/webhooks/tingg/payout-callback");
-        payload.setNarrative("Race Award Payout for " + (payment.getRegistration() != null && payment.getRegistration().getRace() != null ? payment.getRegistration().getRace().getName() : "Race"));
+
+        // Build Tingg Beep packet item
+        Map<String, Object> packet = new HashMap<>();
+        packet.put("serviceCode", activeServiceCode);
+        packet.put("MSISDN", payment.getDestinationAccount());
+        packet.put("accountNumber", payment.getDestinationAccount());
+        packet.put("payerTransactionID", payment.getTransactionRef());
+        packet.put("amount", payment.getAmount());
+        packet.put("currencyCode", "KES");
+        packet.put("countryCode", "KE");
+        packet.put("datePaymentReceived", java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        packet.put("paymentMode", "Mobile");
+        packet.put("customerNames", payment.getUser() != null && payment.getUser().getName() != null ? payment.getUser().getName() : "Winner");
+        packet.put("narration", "Race Award Payout for " + (payment.getRegistration() != null && payment.getRegistration().getRace() != null ? payment.getRegistration().getRace().getName() : "Race"));
+        packet.put("extraData", "{\"callbackUrl\":\"https://kimbia.africa/api/webhooks/tingg/payout-callback\"}");
+
+        // Build credentials object
+        Map<String, Object> credentials = new HashMap<>();
+        credentials.put("username", clientId);
+        credentials.put("password", clientSecret);
+
+        // Build payload object
+        Map<String, Object> beepPayload = new HashMap<>();
+        beepPayload.put("credentials", credentials);
+        beepPayload.put("packet", List.of(packet));
+
+        // Build root request envelope according to Cellulant Tingg Global API specification
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("function", "BEEP.postPayment");
+        requestBody.put("countryCode", "KE");
+        requestBody.put("payload", beepPayload);
+
+        log.info("[TINGG PAYOUT] Dispatching payout request to {} for txRef: {}, amount: {} KES, destination: {}, serviceCode: {}",
+                baseUrl + "/v1/global-api/payments", payment.getTransactionRef(), payment.getAmount(), payment.getDestinationAccount(), activeServiceCode);
 
         try {
-            String token = getAccessToken();
             HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", "Bearer " + token);
-            headers.set("apiKey", apiKey);
+            String basicAuth = java.util.Base64.getEncoder().encodeToString(
+                    (clientId + ":" + clientSecret).getBytes(java.nio.charset.StandardCharsets.UTF_8)
+            );
+            headers.set("Authorization", "Basic " + basicAuth);
+            if (apiKey != null && !apiKey.isBlank()) {
+                headers.set("apiKey", apiKey);
+            }
             headers.set("Content-Type", "application/json");
 
-            HttpEntity<TinggPayoutPayload> request = new HttpEntity<>(payload, headers);
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
             String url = baseUrl + "/v1/global-api/payments";
 
-            ResponseEntity<TinggPayoutResponse> response = restTemplate.exchange(url, HttpMethod.POST, request, TinggPayoutResponse.class);
+            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, request, Map.class);
+            log.info("[TINGG PAYOUT] Received response from Tingg API: status={}, body={}", response.getStatusCode(), response.getBody());
+
             if (response.getBody() != null) {
-                return response.getBody();
+                Map<?, ?> body = response.getBody();
+                List<?> results = (List<?>) body.get("results");
+                if (results != null && !results.isEmpty()) {
+                    Map<?, ?> firstResult = (Map<?, ?>) results.get(0);
+                    String code = String.valueOf(firstResult.get("statusCode"));
+                    String desc = (String) firstResult.get("statusDescription");
+                    String beepId = String.valueOf(firstResult.get("beepTransactionID"));
+
+                    TinggPayoutResponse payoutResp = new TinggPayoutResponse();
+                    payoutResp.setStatus_code(code);
+                    payoutResp.setStatus_description(desc);
+                    payoutResp.setBeep_transaction_id(beepId);
+                    payoutResp.setMerchant_transaction_id(payment.getTransactionRef());
+
+                    if ("139".equals(code) || (!"-1".equals(beepId) && !"167".equals(code))) {
+                        log.info("[TINGG PAYOUT] Payout queued successfully by Tingg: beepTxId={}, description={}", beepId, desc);
+                    } else {
+                        log.warn("[TINGG PAYOUT] Tingg requires service mapping: code={}, description={}", code, desc);
+                    }
+                    return payoutResp;
+                }
             }
         } catch (Exception e) {
-            log.warn("Tingg payout API call encountered error (expected in sandbox without float): {}", e.getMessage());
+            log.warn("[TINGG PAYOUT] API call encountered error (expected in sandbox without float): {}", e.getMessage());
             TinggPayoutResponse fallback = new TinggPayoutResponse();
             fallback.setStatus_code("PENDING");
             fallback.setStatus_description("Disbursement initiated (Sandbox queued): " + e.getMessage());
@@ -115,6 +167,7 @@ public class TinggService {
         defaultResp.setStatus_code("PENDING");
         defaultResp.setStatus_description("Disbursement initiated");
         defaultResp.setMerchant_transaction_id(payment.getTransactionRef());
+        log.info("[TINGG PAYOUT] Completed payout initiation with status: PENDING");
         return defaultResp;
     }
 }

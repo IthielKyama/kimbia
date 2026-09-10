@@ -244,6 +244,8 @@ public class PaymentService {
         String txRef = "AWD_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
         payment.setTransactionRef(txRef);
         payment = paymentRepository.save(payment);
+        log.info("[AWARD PAYOUT] Initiated award payment id={}, txRef={}, amount={} KES, recipient={}",
+                payment.getId(), txRef, payment.getAmount(), destinationAccount);
 
         String serviceCode = null;
         if (registration.getRace() != null && registration.getRace().getOrganizer() != null) {
@@ -266,6 +268,9 @@ public class PaymentService {
 
     @Transactional
     public Map<String, Object> handlePayoutCallback(TinggPayoutCallbackPayload payload, String rawPayload) {
+        log.info("[TINGG CALLBACK] Received payout callback for transaction: {}, statusCode: {}",
+                payload.getMerchant_transaction_id(), payload.getRequest_status_code());
+
         if (payload.getMerchant_transaction_id() == null || payload.getMerchant_transaction_id().isBlank()) {
             throw new IllegalArgumentException("merchant_transaction_id is required in payout callback");
         }

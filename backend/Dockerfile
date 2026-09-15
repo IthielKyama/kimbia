@@ -1,4 +1,4 @@
-﻿# Multi-stage Dockerfile for Kimbia Spring Boot Backend
+# Multi-stage Dockerfile for Kimbia Spring Boot Backend
 
 # Stage 1: Build
 FROM maven:3.9-eclipse-temurin-21-alpine AS builder

@@ -2,7 +2,7 @@
 
 This document covers the complete end-to-end deployment setup for the **Kimbia** platform across all components:
 - **Database**: Neon (Serverless PostgreSQL)
-- **Backend API**: Render (Spring Boot 4 / Java 21 via Docker)
+- **Backend API**: Render (Spring Boot 4 - stable / Java 21 via Docker)
 - **Web Dashboard**: Vercel (React 19 / Vite SPA)
 - **Mobile App**: Expo Application Services / EAS (Android APK & iOS)
 
@@ -109,7 +109,6 @@ The web dashboard is built with React 19, Vite, and React Router.
   }
   ```
   *(Saved as UTF-8 without BOM to satisfy Vercel's strict JSON parser)*.
-- **`web/public/favicon.png`**: Updated with matching Kimbia runner icon.
 
 ### Vercel Dashboard Steps:
 1. Log in to [vercel.com/dashboard](https://vercel.com/dashboard).
@@ -128,7 +127,7 @@ The web dashboard is built with React 19, Vite, and React Router.
 
 *(Ensure there is no trailing slash on the backend URL)*.
 
-6. Click **Deploy**. Vercel will build and assign an instant production URL (e.g. `https://kimbia-web.vercel.app`).
+6. Click **Deploy**. Vercel will build and assign an instant production URL.
 
 ---
 
@@ -145,10 +144,6 @@ The mobile app is built with React Native and Expo. It compiles into a standalon
   - Package ID: `"com.kimbia.app"`
   - Version: `"1.0.0"` with Android `versionCode: 1`
   - Splash Background: `"#0B0F19"` (eliminates white-screen launch flash)
-- **Brand Assets (`mobile/assets/`)**:
-  - `icon.png` & `adaptive-icon.png`: Ultra-HD (1024×1024) artistic stick-figure runner in glowing flame-orange/red (`#FF783C` to `#FF4C29`) on dark squircle.
-  - `splash.png`: Ultra-HD (1242×2436) mobile wallpaper with matching runner figure and bold `"KIMBIA"` typography.
-  - `favicon.png`: 48×48 runner icon.
 - **`mobile/.env`**:
   ```env
   EXPO_PUBLIC_API_URL=https://kimbia-backend.onrender.com
@@ -167,27 +162,8 @@ The mobile app is built with React Native and Expo. It compiles into a standalon
    - Log in to your free Expo account when prompted.
    - When asked *"Generate a new Android Keystore?"*, select **Yes** (EAS stores your signing credentials securely in the cloud).
 4. When compilation finishes (~5–10 minutes), EAS output provides:
-   - 🔗 A **direct HTTPS download URL** to download the `.apk` file.
-   - 📱 A **terminal QR code** you can scan with your Android phone to install directly.
-   - 🌐 An **Expo Dashboard build link** to share the installer with testers.
+   - A **direct HTTPS download URL** to download the `.apk` file.
+   - A **terminal QR code** you can scan with your Android phone to install directly.
+   - An **Expo Dashboard build link** to share the installer with testers.
 
 ---
-
-## 5. Critical Gotchas & Troubleshooting
-
-| Issue | Cause | Solution |
-| :--- | :--- | :--- |
-| **`prepared statement "S_1" does not exist`** | Connecting through Neon's PgBouncer (`-pooler`) with prepared statement caching enabled. | Append `&prepareThreshold=0` to the JDBC URL, or switch to the direct endpoint (remove `-pooler`). |
-| **Render Exit Code 137 (OOM)** | Java default memory allocation exceeds 512MB RAM on Render Free tier. | Managed via Docker JVM flags: `-XX:+UseSerialGC -XX:MaxRAMPercentage=75.0 -Xss256k`. |
-| **Uploaded files disappear on Render** | Render container filesystems are ephemeral; restarts wipe `./uploads`. | For production, migrate `StorageService` to AWS S3, Cloudinary, or Supabase Storage. |
-| **Vercel 404 on page refresh** | React Router sub-routes request non-existent server files on static host. | Handled via `web/vercel.json` rewrite routing all requests to `/index.html`. |
-| **"Invalid web/vercel.json file provided"** | Windows PowerShell saving JSON with a Byte Order Mark (BOM). | Saved with UTF-8 encoding without BOM (`System.Text.UTF8Encoding($false)`). |
-| **EAS builds `.aab` instead of `.apk`** | Default EAS profile builds store bundle instead of direct install APK. | Build using `--profile preview`, which is configured with `"buildType": "apk"`. |
-
----
-
-## 6. Daily Workflow vs. Deployment Workflow
-
-- **Web development**: `npm run dev` in `web/` (pushes to `main` auto-deploy on Vercel).
-- **Backend development**: Run Spring Boot locally against local Postgres or Neon (pushes to `main` auto-deploy on Render).
-- **Mobile development**: Run `npx expo start` with **Expo Go** (instant Fast Refresh). Only trigger `npx eas-cli build` when generating a new distributable APK.

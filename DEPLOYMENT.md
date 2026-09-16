@@ -71,6 +71,7 @@ The backend is built with Spring Boot 4 and Java 21. Since Render does not provi
    - **Root Directory**: `backend` *(Required: do not leave blank in this monorepo)*
    - **Runtime**: `Docker`
    - **Instance Type**: `Free` (or `Starter` $7/mo for zero sleep / always-on)
+   - **Health Check Path**: `/health` (or `/api/health`)
 5. Under **Environment Variables**, add:
 
 | Key | Value | Description |
@@ -84,7 +85,9 @@ The backend is built with Spring Boot 4 and Java 21. Since Render does not provi
 | `APP_BASE_URL` | `https://kimbia-backend.onrender.com` | Your public Render URL (for file upload links) |
 
 6. Click **Deploy Web Service**.
-7. Once healthy, test the public endpoint: `https://<your-app>.onrender.com/api/races`.
+7. Once healthy, test the public endpoints:
+   - Health check: `https://<your-app>.onrender.com/health`
+   - Public races API: `https://<your-app>.onrender.com/api/races`
 
 ---
 

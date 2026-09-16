@@ -52,12 +52,55 @@ public class TinggService {
         HttpEntity<TinggCheckoutPayload> request = new HttpEntity<>(payload, headers);
         String url = baseUrl + "/v3/checkout-api/checkout-request/express-request";
 
-        ResponseEntity<TinggCheckoutResponse> response = restTemplate.exchange(url, HttpMethod.POST, request, TinggCheckoutResponse.class);
+        log.info("[TINGG CHECKOUT] Dispatching express checkout request to {} for txRef: {}, serviceCode: {}",
+                url, payload.getMerchant_transaction_id(), serviceCode);
 
-        if (response.getBody() != null && response.getBody().getResults() != null) {
-            return response.getBody().getResults().getShort_url();
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, request, Map.class);
+            Map<?, ?> body = response.getBody();
+            log.info("[TINGG CHECKOUT] Received response from Tingg API: status={}, body={}", response.getStatusCode(), body);
+
+            if (body != null) {
+                // Format 1: {"status": 1031, "message": "This client is not allowed..."}
+                if (body.get("status") instanceof Number numStatus) {
+                    int statusCode = numStatus.intValue();
+                    String message = body.get("message") != null ? String.valueOf(body.get("message")) : "Tingg checkout request rejected";
+                    if (statusCode != 200) {
+                        log.error("[TINGG CHECKOUT] Tingg rejected checkout: code={}, message={}", statusCode, message);
+                        throw new RuntimeException("Tingg Gateway Error (" + statusCode + "): " + message);
+                    }
+                }
+
+                // Format 2: {"status": {"status_code": 200, "status_description": "success"}}
+                if (body.get("status") instanceof Map<?, ?> statusMap) {
+                    Object codeObj = statusMap.get("status_code");
+                    int statusCode = codeObj instanceof Number n ? n.intValue() : 0;
+                    String desc = statusMap.get("status_description") != null ? String.valueOf(statusMap.get("status_description")) : "";
+                    if (statusCode != 200 && statusCode != 0) {
+                        log.error("[TINGG CHECKOUT] Tingg rejected checkout: code={}, description={}", statusCode, desc);
+                        throw new RuntimeException("Tingg Gateway Error (" + statusCode + "): " + desc);
+                    }
+                }
+
+                // Extract short_url or long_url from results
+                if (body.get("results") instanceof Map<?, ?> resultsMap) {
+                    if (resultsMap.get("short_url") != null && !String.valueOf(resultsMap.get("short_url")).isBlank()) {
+                        return String.valueOf(resultsMap.get("short_url"));
+                    }
+                    if (resultsMap.get("long_url") != null && !String.valueOf(resultsMap.get("long_url")).isBlank()) {
+                        return String.valueOf(resultsMap.get("long_url"));
+                    }
+                }
+            }
+        } catch (org.springframework.web.client.HttpStatusCodeException e) {
+            log.error("[TINGG CHECKOUT] HTTP error from Tingg API: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw new RuntimeException("Tingg HTTP Error " + e.getStatusCode().value() + ": " + e.getResponseBodyAsString());
+        } catch (Exception e) {
+            log.error("[TINGG CHECKOUT] Error during express checkout: {}", e.getMessage());
+            throw (e instanceof RuntimeException ? (RuntimeException) e : new RuntimeException(e.getMessage(), e));
         }
-        throw new RuntimeException("Failed to get checkout URL from Tingg");
+
+        throw new RuntimeException("Failed to get checkout URL from Tingg: empty or unrecognized response");
     }
 
     private String getAccessToken() {
@@ -69,12 +112,17 @@ public class TinggService {
         HttpEntity<TinggAuthRequest> request = new HttpEntity<>(authRequest, headers);
 
         String url = baseUrl + "/v1/oauth/token/request";
-        ResponseEntity<TinggAuthResponse> response = restTemplate.exchange(url, HttpMethod.POST, request, TinggAuthResponse.class);
+        try {
+            ResponseEntity<TinggAuthResponse> response = restTemplate.exchange(url, HttpMethod.POST, request, TinggAuthResponse.class);
 
-        if (response.getBody() != null) {
-            return response.getBody().getAccess_token();
+            if (response.getBody() != null && response.getBody().getAccess_token() != null) {
+                return response.getBody().getAccess_token();
+            }
+        } catch (Exception e) {
+            log.error("[TINGG AUTH] Failed to authenticate with Tingg OAuth API: {}", e.getMessage());
+            throw new RuntimeException("Tingg Auth Failed: " + e.getMessage(), e);
         }
-        throw new RuntimeException("Failed to authenticate with Tingg");
+        throw new RuntimeException("Failed to authenticate with Tingg: access_token not found in response");
     }
 
     public TinggPayoutResponse initiatePayout(Payment payment, String customServiceCode) {

@@ -1,14 +1,21 @@
 package com.kimbia.backend.dto.tingg;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class TinggCheckoutResponse {
-    private Status status;
-    private Results results;
+    private Object status;
+    private Object results;
+    private String message;
 
-    public Status getStatus() { return status; }
-    public void setStatus(Status status) { this.status = status; }
-    public Results getResults() { return results; }
-    public void setResults(Results results) { this.results = results; }
+    public Object getStatus() { return status; }
+    public void setStatus(Object status) { this.status = status; }
+    public Object getResults() { return results; }
+    public void setResults(Object results) { this.results = results; }
+    public String getMessage() { return message; }
+    public void setMessage(String message) { this.message = message; }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Status {
         private Integer status_code;
         private String status_description;
@@ -18,6 +25,7 @@ public class TinggCheckoutResponse {
         public void setStatus_description(String status_description) { this.status_description = status_description; }
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Results {
         private String short_url;
         private String long_url;
@@ -27,4 +35,3 @@ public class TinggCheckoutResponse {
         public void setLong_url(String long_url) { this.long_url = long_url; }
     }
 }
-

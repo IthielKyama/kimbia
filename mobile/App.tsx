@@ -1,7 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
@@ -57,6 +57,55 @@ export const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 const queryClient = new QueryClient();
 
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Root ErrorBoundary caught an error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, backgroundColor: '#0B0F19', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <Text style={{ color: '#FF4C29', fontSize: 22, fontWeight: 'bold', marginBottom: 12 }}>
+            KIMBIA
+          </Text>
+          <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: 'bold', marginBottom: 8, textAlign: 'center' }}>
+            App Initialization Notice
+          </Text>
+          <Text style={{ color: '#9CA3AF', fontSize: 13, textAlign: 'center', marginBottom: 24 }}>
+            {this.state.error?.message || 'An unexpected error occurred during startup.'}
+          </Text>
+          <TouchableOpacity
+            onPress={() => this.setState({ hasError: false, error: null })}
+            style={{ backgroundColor: '#FF4C29', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }}
+          >
+            <Text style={{ color: '#ffffff', fontWeight: 'bold' }}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
   const [isReady, setIsReady] = useState(false);
   const [initialRoute, setInitialRoute] = useState<keyof RootStackParamList>('Login');
@@ -92,7 +141,18 @@ export default function App() {
   }, []);
 
   const linking = {
-    prefixes: [Linking.createURL('/'), 'http://localhost:8081', 'https://localhost:8081'],
+    prefixes: [
+      'kimbia://',
+      ...(function () {
+        try {
+          return [Linking.createURL('/')];
+        } catch {
+          return [];
+        }
+      })(),
+      'http://localhost:8081',
+      'https://localhost:8081',
+    ],
     config: {
       screens: {
         PaymentStatus: 'payment-status/:registrationId',
@@ -109,45 +169,47 @@ export default function App() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <SafeAreaProvider>
-        <View style={{ flex: 1, backgroundColor: '#0B0F19' }}>
-          <StatusBar style="light" />
-          <NavigationContainer linking={linking} ref={navigationRef}>
-            <Stack.Navigator 
-              id="RootStack"
-              initialRouteName={initialRoute}
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: '#0B0F19' },
-                animation: 'slide_from_right' // Industry standard push animation
-              }}
-            >
-              <Stack.Screen name="Login" component={LoginScreen} options={{ animation: 'fade' }} />
-              <Stack.Screen name="SignUp" component={SignUpScreen} options={{ animation: 'fade' }} />
-              <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-              
-              {/* Fake Tab Screens (No animation for instant switching) */}
-              <Stack.Screen name="Explore" component={ExploreScreen} options={{ animation: 'none' }} />
-              <Stack.Screen name="Leaderboard" component={LeaderboardScreen} options={{ animation: 'none' }} />
-              <Stack.Screen name="MyEvents" component={MyEventsScreen} options={{ animation: 'none' }} />
-              <Stack.Screen name="PendingRaces" component={PendingRacesScreen} options={{ animation: 'none' }} />
-              <Stack.Screen name="Profile" component={ProfileScreen} options={{ animation: 'none' }} />
-              
-              {/* Standard Push Screens (Inherits slide_from_right) */}
-              <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
-              <Stack.Screen name="Registration" component={RegistrationScreen} />
-              <Stack.Screen name="SubmitTime" component={SubmitTimeScreen} />
-              <Stack.Screen name="DigitalBib" component={DigitalBibScreen} />
-              <Stack.Screen name="Checkout" component={CheckoutScreen} />
-              <Stack.Screen name="PaymentStatus" component={PaymentStatusScreen} options={{ animation: 'fade' }} />
-              <Stack.Screen name="SubmissionSuccess" component={SubmissionSuccessScreen} options={{ animation: 'fade' }} />
-              <Stack.Screen name="Notifications" component={NotificationsScreen} />
-              <Stack.Screen name="Settings" component={SettingsScreen} />
-            </Stack.Navigator>
-          </NavigationContainer>
-        </View>
-      </SafeAreaProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <SafeAreaProvider>
+          <View style={{ flex: 1, backgroundColor: '#0B0F19' }}>
+            <StatusBar style="light" />
+            <NavigationContainer linking={linking} ref={navigationRef}>
+              <Stack.Navigator 
+                id="RootStack"
+                initialRouteName={initialRoute}
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: '#0B0F19' },
+                  animation: 'slide_from_right' // Industry standard push animation
+                }}
+              >
+                <Stack.Screen name="Login" component={LoginScreen} options={{ animation: 'fade' }} />
+                <Stack.Screen name="SignUp" component={SignUpScreen} options={{ animation: 'fade' }} />
+                <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+                
+                {/* Fake Tab Screens (No animation for instant switching) */}
+                <Stack.Screen name="Explore" component={ExploreScreen} options={{ animation: 'none' }} />
+                <Stack.Screen name="Leaderboard" component={LeaderboardScreen} options={{ animation: 'none' }} />
+                <Stack.Screen name="MyEvents" component={MyEventsScreen} options={{ animation: 'none' }} />
+                <Stack.Screen name="PendingRaces" component={PendingRacesScreen} options={{ animation: 'none' }} />
+                <Stack.Screen name="Profile" component={ProfileScreen} options={{ animation: 'none' }} />
+                
+                {/* Standard Push Screens (Inherits slide_from_right) */}
+                <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
+                <Stack.Screen name="Registration" component={RegistrationScreen} />
+                <Stack.Screen name="SubmitTime" component={SubmitTimeScreen} />
+                <Stack.Screen name="DigitalBib" component={DigitalBibScreen} />
+                <Stack.Screen name="Checkout" component={CheckoutScreen} />
+                <Stack.Screen name="PaymentStatus" component={PaymentStatusScreen} options={{ animation: 'fade' }} />
+                <Stack.Screen name="SubmissionSuccess" component={SubmissionSuccessScreen} options={{ animation: 'fade' }} />
+                <Stack.Screen name="Notifications" component={NotificationsScreen} />
+                <Stack.Screen name="Settings" component={SettingsScreen} />
+              </Stack.Navigator>
+            </NavigationContainer>
+          </View>
+        </SafeAreaProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }

@@ -4,12 +4,26 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
 const getBaseUrl = () => {
-  // 1. Explicit env variable override
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL;
+  // 1. Explicit local dev override if set
+  if (__DEV__ && process.env.EXPO_PUBLIC_DEV_API_URL) {
+    return process.env.EXPO_PUBLIC_DEV_API_URL;
   }
 
-  // 2. Web browser (running in mobile or desktop browser)
+  // 2. Explicit environment variable:
+  // - In production (!__DEV__), always use EXPO_PUBLIC_API_URL.
+  // - In local dev (__DEV__), only use EXPO_PUBLIC_API_URL if it points to a local address
+  //   (e.g. localhost, 127.0.0.1, 10.x, 192.168.x) or if explicitly forced via EXPO_PUBLIC_FORCE_REMOTE=true.
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    const isRemote =
+      process.env.EXPO_PUBLIC_API_URL.startsWith('https://') ||
+      process.env.EXPO_PUBLIC_API_URL.includes('onrender.com');
+
+    if (!__DEV__ || !isRemote || process.env.EXPO_PUBLIC_FORCE_REMOTE === 'true') {
+      return process.env.EXPO_PUBLIC_API_URL;
+    }
+  }
+
+  // 3. Web browser (running in mobile or desktop browser)
   if (Platform.OS === 'web') {
     if (typeof window !== 'undefined' && window.location?.hostname) {
       return `http://${window.location.hostname}:8081`;
@@ -17,7 +31,8 @@ const getBaseUrl = () => {
     return 'http://localhost:8081';
   }
 
-  // 3. Expo Go / Dev Client (extract host IP from Metro connection)
+  // 4. Expo Go / Dev Client on physical device:
+  // Extract host machine's IP from Metro connection so physical devices can reach backend
   const hostUri =
     Constants.expoConfig?.hostUri ||
     (Constants as any).manifest?.debuggerHost ||
@@ -30,16 +45,20 @@ const getBaseUrl = () => {
     }
   }
 
-  // 4. Android Emulator
+  // 5. Android Emulator loopback
   if (Platform.OS === 'android') {
     return 'http://10.0.2.2:8081';
   }
 
-  // 5. Fallback LAN IP
-  return 'http://192.168.1.5:8081';
+  // 6. Local machine fallback IP
+  return 'http://localhost:8081';
 };
 
 const BASE_URL = getBaseUrl();
+
+if (__DEV__) {
+  console.log(`[Kimbia API] Running in local development mode. Base URL: ${BASE_URL}`);
+}
 
 const apiClient = axios.create({
   baseURL: BASE_URL,

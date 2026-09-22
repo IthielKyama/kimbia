@@ -10,12 +10,18 @@
     },
     "preview": {
       "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://kimbia-backend.onrender.com"
+      },
       "android": {
         "buildType": "apk"
       }
     },
     "production": {
       "distribution": "store",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://kimbia-backend.onrender.com"
+      },
       "android": {
         "buildType": "app-bundle"
       }

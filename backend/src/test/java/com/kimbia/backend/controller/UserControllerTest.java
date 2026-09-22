@@ -2,6 +2,7 @@ package com.kimbia.backend.controller;
 
 import com.kimbia.backend.entity.Registration;
 import com.kimbia.backend.entity.User;
+import com.kimbia.backend.repository.UserRepository;
 import com.kimbia.backend.service.RegistrationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,11 +22,14 @@ class UserControllerTest {
     @Mock
     private RegistrationService registrationService;
 
+    @Mock
+    private UserRepository userRepository;
+
     private UserController userController;
 
     @BeforeEach
     void setUp() {
-        userController = new UserController(registrationService);
+        userController = new UserController(registrationService, userRepository);
     }
 
     @Test

@@ -53,6 +53,16 @@ public class User implements UserDetails {
 
     private String dateOfBirth;
 
+    @Column(name = "avatar_url")
+    @JsonProperty("avatar_url")
+    @com.fasterxml.jackson.annotation.JsonAlias("avatarUrl")
+    private String avatarUrl;
+
+    @JsonProperty("avatarUrl")
+    public String getAvatarUrlCamel() {
+        return avatarUrl;
+    }
+
     @Enumerated(EnumType.STRING)
     private AccountStatus status;
 

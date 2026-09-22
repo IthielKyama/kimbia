@@ -34,7 +34,7 @@ export type RootStackParamList = {
   EventDetails: { raceId: number, race?: any };
   Registration: undefined;
   Profile: undefined;
-  Leaderboard: undefined;
+  Leaderboard: { raceId?: number } | undefined;
   SubmitTime: { registrationId?: number; raceName?: string; distance?: string } | undefined;
   DigitalBib: { registrationId: number };
   Checkout: { raceId: number };

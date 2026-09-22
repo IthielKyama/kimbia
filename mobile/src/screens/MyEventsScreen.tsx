@@ -237,7 +237,7 @@ export default function MyEventsScreen({ navigation }: { navigation: MyEventsScr
                       ) : hasSubmitted ? (
                         <TouchableOpacity 
                           className="flex-1 bg-[#1E2A3E] border border-[#243249] py-2.5 px-3 rounded-xl items-center flex-row justify-center gap-2"
-                          onPress={() => navigation.navigate('Leaderboard')}
+                          onPress={() => navigation.navigate('Leaderboard', { raceId: race?.id })}
                         >
                           <Feather 
                             name={isApproved ? "check-circle" : "clock"} 

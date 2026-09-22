@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Modal 
 } from 'react-native';
@@ -27,10 +27,17 @@ interface LeaderboardEntry {
   gender?: string;
 }
 
-export default function LeaderboardScreen({ navigation }: any) {
-  const [selectedRaceId, setSelectedRaceId] = useState<number | null>(null);
+export default function LeaderboardScreen({ navigation, route }: any) {
+  const [selectedRaceId, setSelectedRaceId] = useState<number | null>(route?.params?.raceId ?? null);
   const [activeTab, setActiveTab] = useState<'Overall' | 'Men' | 'Women'>('Overall');
   const [showRaceSelector, setShowRaceSelector] = useState(false);
+
+  // Sync selected race whenever route param changes (e.g. from Profile achievements or My Events)
+  useEffect(() => {
+    if (route?.params?.raceId) {
+      setSelectedRaceId(route.params.raceId);
+    }
+  }, [route?.params?.raceId]);
 
   // Fetch published races
   const { data: races = [], isLoading: isLoadingRaces, refetch: refetchRaces } = useQuery<RaceItem[]>({
@@ -41,13 +48,32 @@ export default function LeaderboardScreen({ navigation }: any) {
     },
   });
 
-  // Default to first race if not yet selected
+  // Fetch specific race details if selected race is not in the published list (e.g. past or closed race)
+  const { data: specificRace } = useQuery<RaceItem>({
+    queryKey: ['raceDetails', selectedRaceId],
+    queryFn: async () => {
+      const res = await apiClient.get<RaceItem>(`/api/races/${selectedRaceId}`);
+      return res.data;
+    },
+    enabled: !!selectedRaceId && !races.some((r) => r.id === selectedRaceId),
+  });
+
+  // Default to selected race, or first race if not yet selected
   const activeRace = useMemo(() => {
     if (selectedRaceId) {
-      return races.find((r) => r.id === selectedRaceId) || races[0];
+      const found = races.find((r) => r.id === selectedRaceId);
+      if (found) return found;
+      if (specificRace) return specificRace;
     }
     return races[0];
-  }, [races, selectedRaceId]);
+  }, [races, selectedRaceId, specificRace]);
+
+  const allSelectableRaces = useMemo(() => {
+    if (specificRace && !races.some((r) => r.id === specificRace.id)) {
+      return [specificRace, ...races];
+    }
+    return races;
+  }, [races, specificRace]);
 
   const currentRaceId = activeRace?.id;
 
@@ -295,7 +321,7 @@ export default function LeaderboardScreen({ navigation }: any) {
           <View className="bg-surface border border-[#243249] rounded-2xl p-5 max-h-[400px]">
             <Text className="text-white font-bold text-lg mb-3">Select Race Leaderboard</Text>
             <ScrollView>
-              {races.map((race) => (
+              {allSelectableRaces.map((race) => (
                 <TouchableOpacity
                   key={race.id}
                   className={`p-3 rounded-xl mb-2 flex-row justify-between items-center ${

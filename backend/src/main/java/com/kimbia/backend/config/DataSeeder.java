@@ -13,10 +13,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.context.annotation.Profile;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Component
+@Profile("!test")
 public class DataSeeder implements CommandLineRunner {
 
     private final EntityManager entityManager;
